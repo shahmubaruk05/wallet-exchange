@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle, RefreshCw, Loader2, Info } from "lucide-react";
 import {
   paymentMethods,
   type PaymentMethod,
@@ -42,6 +42,8 @@ export default function ExchangeForm() {
   const [receiveMethodId, setReceiveMethodId] = useState<string>("bkash");
   const [isCalculating, setIsCalculating] = useState(false);
   const [transactionFee, setTransactionFee] = useState<number>(0);
+  const [rateText, setRateText] = useState<string>("");
+
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -82,6 +84,7 @@ export default function ExchangeForm() {
       if (isNaN(amount) || amount <= 0) {
         setReceiveAmount("");
         setTransactionFee(0);
+        setRateText("");
         setIsCalculating(false);
         return;
       }
@@ -95,20 +98,25 @@ export default function ExchangeForm() {
       const amountAfterFee = amount - fee;
 
       let result = 0;
+      let rateString = "";
       if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
         result = amountAfterFee * exchangeRates.USD_TO_BDT;
+        rateString = `1 USD = ${exchangeRates.USD_TO_BDT} BDT`;
       } else if (
         sendMethod.currency === "BDT" &&
         receiveMethod.currency === "USD"
       ) {
         result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
+        rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
       } else {
         result = amountAfterFee; // Same currency
+        rateString = `1 ${sendMethod.currency} = 1 ${receiveMethod.currency}`;
       }
 
       // Simulate calculation delay
       setTimeout(() => {
         setReceiveAmount(result.toFixed(2));
+        setRateText(rateString);
         setIsCalculating(false);
       }, 300);
     };
@@ -234,9 +242,17 @@ export default function ExchangeForm() {
             </div>
           </div>
 
-          <div className="flex justify-center my-4">
-             <RefreshCw className="h-6 w-6 text-muted-foreground" />
+           <div className="flex justify-center my-2 items-center text-sm font-medium text-muted-foreground">
+            {isCalculating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : rateText ? (
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                 <Info className="h-4 w-4" />
+                <span>Rate: {rateText}</span>
+              </div>
+            ) : null}
           </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div className="space-y-2">
