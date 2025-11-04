@@ -12,22 +12,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { exchangeRates } from "@/lib/data";
+import { exchangeRates as defaultRates } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
 
 const AdminRatesPage = () => {
-  const [usdToBdt, setUsdToBdt] = useState(exchangeRates.USD_TO_BDT);
+  const [usdToBdt, setUsdToBdt] = useState(defaultRates.USD_TO_BDT);
   const [bdtToUsdRate, setBdtToUsdRate] = useState(
-    exchangeRates.BDT_TO_USD_RATE
+    defaultRates.BDT_TO_USD_RATE
   );
   const { toast } = useToast();
 
   const handleSave = () => {
     // In a real app, this would be a server action to update the database.
     // For now, we'll just show a toast notification.
-    exchangeRates.USD_TO_BDT = usdToBdt;
-    exchangeRates.BDT_TO_USD_RATE = bdtToUsdRate;
+    defaultRates.USD_TO_BDT = usdToBdt;
+    defaultRates.BDT_TO_USD_RATE = bdtToUsdRate;
 
     toast({
       title: "Rates Updated",

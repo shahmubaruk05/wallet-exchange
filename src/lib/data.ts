@@ -15,7 +15,7 @@ export const paymentMethods: PaymentMethod[] = [
 
 // Mock exchange rates, to be replaced by Firestore data
 export let exchangeRates = {
-  USD_TO_BDT: 115.5,
+  USD_TO_BDT: 122,
   BDT_TO_USD_RATE: 120.0,
 };
 
@@ -34,3 +34,11 @@ export type Transaction = {
   status: TransactionStatus;
   transactionDate: string; // Should be ISO string
 };
+
+export type ExchangeRate = {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  lastUpdated: string;
+}
