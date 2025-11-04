@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, UserCog } from "lucide-react";
+import { ArrowLeftRight, UserCog, LogIn, LayoutDashboard } from "lucide-react";
+import { useUser } from "@/firebase";
 
 const Header = () => {
+  const { user, isUserLoading } = useUser();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center">
@@ -13,13 +18,30 @@ const Header = () => {
           </span>
         </Link>
         <div className="flex flex-1 items-center justify-end">
-          <nav className="flex items-center">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/admin">
-                <UserCog className="h-5 w-5" />
-                <span className="sr-only">Admin Dashboard</span>
-              </Link>
-            </Button>
+          <nav className="flex items-center gap-2">
+            {isUserLoading ? null : user ? (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/dashboard">
+                    <LayoutDashboard className="h-5 w-5" />
+                    <span className="hidden sm:inline-block sm:ml-2">Dashboard</span>
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/admin">
+                    <UserCog className="h-5 w-5" />
+                    <span className="sr-only">Admin Dashboard</span>
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">
+                  <LogIn className="h-5 w-5" />
+                   <span className="hidden sm:inline-block sm:ml-2">Login</span>
+                </Link>
+              </Button>
+            )}
           </nav>
         </div>
       </div>
