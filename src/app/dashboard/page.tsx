@@ -29,7 +29,7 @@ function DashboardPage() {
         <div className="bg-card border rounded-lg p-6">
           <h2 className="text-2xl font-semibold mb-4">Dashboard</h2>
           <p className="text-muted-foreground">
-            You are successfully logged in. This is your personal dashboard.
+            Welcome to your personal dashboard. Use the menu on the left to navigate.
           </p>
         </div>
       </div>
