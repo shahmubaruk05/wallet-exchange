@@ -32,7 +32,7 @@ import type { ExchangeRate } from "@/lib/data";
 
 type Step = "form" | "confirm" | "status";
 
-const PAYPAL_FEE_PERCENTAGE = 0.05; // 5%
+const TRANSACTION_FEE_PERCENTAGE = 0.05; // 5%
 
 export default function ExchangeForm() {
   const [step, setStep] = useState<Step>("form");
@@ -87,8 +87,8 @@ export default function ExchangeForm() {
       }
 
       let fee = 0;
-      if (sendMethod.id === 'paypal') {
-        fee = amount * PAYPAL_FEE_PERCENTAGE;
+      if (['paypal', 'payoneer', 'wise'].includes(sendMethod.id)) {
+        fee = amount * TRANSACTION_FEE_PERCENTAGE;
       }
       setTransactionFee(fee);
       
