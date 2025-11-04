@@ -4,17 +4,18 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for user profiles and transactions,
  * while allowing public read access to exchange rates.  Write access to exchange rates is not granted.
+ * An admin role is defined to allow read access to all transactions.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles. Only the user can read/write their own profile.
  * - /exchange_rates/{exchangeRateId}: Stores exchange rates. Public read access, no write access.
- * - /users/{userId}/transactions/{transactionId}: Stores transactions for each user. Only the user can read/write their own transactions.
+ * - /users/{userId}/transactions/{transactionId}: Stores transactions for each user. Only the user can read/write their own transactions. Admins can read all transactions.
  *
  * Key Security Decisions:
  * - User listing is disabled to protect user privacy.
  * - Exchange rates are publicly readable but not writable, allowing for easy access without authentication.
  * - The rules leverage path-based ownership to simplify authorization and avoid costly `get()` calls.
- * - No admin roles are defined, thus admin-level privileges are not granted.
+ * - Admin roles are defined via custom claims (`isAdmin: true`), granting admin-level privileges for reading transactions.
  *
  * Denormalization for Authorization:
  * - The `Transaction` entity includes a `userId` field that mirrors the parent `/users/{userId}` path,
@@ -38,47 +39,50 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // User listing is disabled to protect privacy.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow update: if isSignedIn() && (isExistingOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && (isExistingOwner(userId) || isAdmin());
     }
 
     /**
-     * @description Publicly readable exchange rates. No write access granted.
+     * @description Publicly readable exchange rates. No write access granted except for admins.
      * @path /exchange_rates/{exchangeRateId}
      * @allow (get) Any user can read an exchange rate.
      * @allow (list) Any user can list exchange rates.
-     * @deny (create) No user can create exchange rates.
-     * @deny (update) No user can update exchange rates.
-     * @deny (delete) No user can delete exchange rates.
-     * @principle Allows public read access while denying all write access.
+     * @allow (create, update, delete) Only admins can manage exchange rates.
+     * @principle Allows public read access while restricting write access to admins.
      */
     match /exchange_rates/{exchangeRateId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Secure user transactions. Only the user can read/write their own transactions.
+     * @description Secure user transactions. Only the user can read/write their own transactions. Admins can read all transactions.
      * @path /users/{userId}/transactions/{transactionId}
      * @allow (create) User with ID 'user123' can create a transaction: request.auth.uid == 'user123' and request.resource.data.userId == 'user123'
-     * @allow (get) User with ID 'user123' can read their transaction: request.auth.uid == 'user123'
-     * @allow (update) User with ID 'user123' can update their transaction: request.auth.uid == 'user123' and resource.data.userId == 'user123'
-     * @allow (delete) User with ID 'user123' can delete their transaction: request.auth.uid == 'user123' and resource.data.userId == 'user123'
+     * @allow (get) User with ID 'user123' can read their transaction: request.auth.uid == 'user123'. Admin can also read.
+     * @allow (update) User with ID 'user123' can update their transaction: request.auth.uid == 'user123' and resource.data.userId == 'user123'. Admin can also update.
+     * @allow (delete) User with ID 'user123' can delete their transaction: request.auth.uid == 'user123' and resource.data.userId == 'user123'. Admin can also delete.
      * @deny (create) User with ID 'user456' cannot create a transaction for 'user123': request.auth.uid == 'user456' and request.resource.data.userId == 'user123'
-     * @deny (get) User with ID 'user456' cannot read the transaction of 'user123': request.auth.uid == 'user456'
-     * @deny (update) User with ID 'user456' cannot update the transaction of 'user123': request.auth.uid == 'user456' and resource.data.userId == 'user123'
-     * @deny (delete) User with ID 'user456' cannot delete the transaction of 'user123': request.auth.uid == 'user456' and resource.data.userId == 'user123'
-     * @principle Enforces document ownership for all operations. Validates that the userId matches the path.
+     * @deny (get) User with ID 'user456' cannot read the transaction of 'user123' unless they are an admin: request.auth.uid == 'user456'
+     * @principle Enforces document ownership for all operations, with admin override for read/write. Validates that the userId matches the path.
      */
     match /users/{userId}/transactions/{transactionId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow update: if isSignedIn() && (isExistingOwner(userId) || isAdmin());
+      allow delete: if isSignedIn() && (isExistingOwner(userId) || isAdmin());
+    }
+
+    /**
+     * @description Allow admins to perform collection group queries on transactions.
+     */
+    match /{path=**}/transactions/{transactionId} {
+      allow get, list: if isAdmin();
     }
   }
 
@@ -93,5 +97,9 @@ service cloud.firestore {
 
   function isExistingOwner(userId) {
     return isOwner(userId) && resource != null;
+  }
+  
+  function isAdmin() {
+    return request.auth.token.isAdmin == true;
   }
 }
