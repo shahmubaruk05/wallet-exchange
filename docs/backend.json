@@ -116,6 +116,18 @@
           "type": "string",
           "description": "The date and time of the transaction.",
           "format": "date-time"
+        },
+        "sendingAccountId": {
+          "type": "string",
+          "description": "The account identifier (e.g., email, phone number) from which the user sent funds."
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "The transaction ID provided by the payment gateway after the user has paid."
+        },
+        "receivingAccountId": {
+          "type": "string",
+          "description": "The account identifier (e.g., phone number) where the user will receive funds."
         }
       },
       "required": [
@@ -128,7 +140,10 @@
         "exchangeRateId",
         "receivedAmount",
         "status",
-        "transactionDate"
+        "transactionDate",
+        "sendingAccountId",
+        "transactionId",
+        "receivingAccountId"
       ]
     }
   },

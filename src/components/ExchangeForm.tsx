@@ -27,7 +27,7 @@ import {
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 
 type Step = "form" | "confirm" | "status";
@@ -43,6 +43,11 @@ export default function ExchangeForm() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [transactionFee, setTransactionFee] = useState<number>(0);
   const [rateText, setRateText] = useState<string>("");
+
+  // New state for confirmation form
+  const [sendingAccountId, setSendingAccountId] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [receivingAccountId, setReceivingAccountId] = useState('');
 
 
   const firestore = useFirestore();
@@ -161,8 +166,18 @@ export default function ExchangeForm() {
     setStep("confirm");
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user || !firestore) return;
+     if (!sendingAccountId || !transactionId || !receivingAccountId) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all fields in Step 2.",
+        variant: "destructive",
+      });
+      return;
+    }
+
 
     const transactionData = {
         userId: user.uid,
@@ -174,6 +189,9 @@ export default function ExchangeForm() {
         receivedAmount: parseFloat(receiveAmount),
         status: "Processing",
         transactionDate: new Date().toISOString(),
+        sendingAccountId,
+        transactionId,
+        receivingAccountId,
     };
     
     const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
@@ -187,6 +205,9 @@ export default function ExchangeForm() {
     setSendAmount('100');
     setSendMethodId('paypal');
     setReceiveMethodId('bkash');
+    setSendingAccountId('');
+    setTransactionId('');
+    setReceivingAccountId('');
   }
 
   const renderForm = () => (
@@ -324,52 +345,77 @@ export default function ExchangeForm() {
         <CardTitle>Confirm Transaction</CardTitle>
         <CardDescription>Review the details and proceed with payment.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">You Send</span>
-            <span className="font-semibold flex items-center gap-2">
-              <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
-              {amountNum.toFixed(2)} {sendMethod.currency}
-            </span>
+      <form onSubmit={handleConfirm}>
+        <CardContent className="space-y-6">
+          {/* Step 1 */}
+          <div className="p-4 rounded-lg border space-y-4">
+              <div>
+                  <h3 className="font-semibold mb-2 text-lg">Step 1: Send Money</h3>
+                  <div className="text-sm space-y-1 text-muted-foreground">
+                    <p>Amount: <strong className="text-primary">{amountNum.toFixed(2)} {sendMethod.currency}</strong></p>
+                    <p>Method: <strong className="text-primary">{sendMethod.name}</strong></p>
+                    <p>Instruction: Please send to the following address/number:</p>
+                  </div>
+                  <div className="mt-2 p-3 bg-primary/10 rounded-md text-center font-mono text-primary-foreground tracking-wider">
+                      {instruction}
+                  </div>
+              </div>
           </div>
-          {transactionFee > 0 && (
-             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Transaction Fee ({sendMethod.name})</span>
-              <span className="font-semibold text-destructive">
-                - {transactionFee.toFixed(2)} {sendMethod.currency}
-              </span>
-            </div>
-          )}
-          <div className="flex justify-between items-center text-base">
-            <span className="text-muted-foreground">You Receive</span>
-            <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
-              <PaymentIcon id={receiveMethod.id} className="w-5 h-5"/>
-              {receiveAmount} {receiveMethod.currency}
-            </span>
-          </div>
-        </div>
 
-        <div className="p-4 rounded-lg border space-y-4">
-            <div>
-                <h3 className="font-semibold mb-1">Step 1: Send Money</h3>
-                <p className="text-sm text-muted-foreground">
-                    Please send exactly <strong className="text-primary">{amountNum.toFixed(2)} {sendMethod.currency}</strong> to the following address/number:
-                </p>
-                <div className="mt-2 p-3 bg-primary/10 rounded-md text-center font-mono text-primary-foreground tracking-wider">
-                    {instruction}
-                </div>
+          {/* Step 2 */}
+          <div className="p-4 rounded-lg border space-y-4">
+            <h3 className="font-semibold mb-4 text-lg">Step 2: Submit Your Information</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="sending-account">Your {sendMethod.name} Account</Label>
+              <Input id="sending-account" value={sendingAccountId} onChange={(e) => setSendingAccountId(e.target.value)} placeholder={`Your ${sendMethod.name} email / number`} required />
             </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex-col sm:flex-row gap-2">
-        <Button variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
-        <Button onClick={handleConfirm} className="w-full sm:w-auto flex-grow">
-          I Have Paid
-        </Button>
-      </CardFooter>
+
+            <div className="space-y-2">
+              <Label htmlFor="transaction-id">Your Transaction ID</Label>
+              <Input id="transaction-id" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Enter the transaction ID" required />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="receiving-account">Your {receiveMethod.name} Account</Label>
+              <Input id="receiving-account" value={receivingAccountId} onChange={(e) => setReceivingAccountId(e.target.value)} placeholder={`Your ${receiveMethod.name} number`} required />
+            </div>
+
+            <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm mt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">You are sending</span>
+                <span className="font-semibold flex items-center gap-2">
+                  <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
+                  {amountNum.toFixed(2)} {sendMethod.currency}
+                </span>
+              </div>
+              {transactionFee > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Transaction Fee</span>
+                  <span className="font-semibold text-destructive">
+                    - {transactionFee.toFixed(2)} {sendMethod.currency}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-base">
+                <span className="text-muted-foreground">You will receive</span>
+                <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
+                  <PaymentIcon id={receiveMethod.id} className="w-5 h-5"/>
+                  {receiveAmount} {receiveMethod.currency}
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+          <Button type="submit" className="w-full sm:w-auto flex-grow">
+            Confirm Order
+          </Button>
+        </CardFooter>
+      </form>
     </Card>
     );
   };
