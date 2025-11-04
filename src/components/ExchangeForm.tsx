@@ -22,11 +22,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
 import {
   paymentMethods,
-  exchangeRates,
   type PaymentMethod,
 } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
+import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { collection, doc, serverTimestamp } from "firebase/firestore";
+import type { ExchangeRate } from "@/lib/data";
 
 type Step = "form" | "confirm" | "status";
 
@@ -38,7 +40,28 @@ export default function ExchangeForm() {
   const [receiveMethodId, setReceiveMethodId] = useState<string>("bkash");
   const [isCalculating, setIsCalculating] = useState(false);
 
+  const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
+
+  const exchangeRatesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'exchange_rates');
+  }, [firestore]);
+
+  const { data: exchangeRatesData } = useCollection<ExchangeRate>(exchangeRatesQuery);
+
+  const exchangeRates = useMemo(() => {
+    if (!exchangeRatesData) return { USD_TO_BDT: 115.5, BDT_TO_USD_RATE: 120.0 }; // Default values
+    
+    const usdToBdtRate = exchangeRatesData.find(rate => rate.fromCurrency === 'USD' && rate.toCurrency === 'BDT')?.rate;
+    const bdtToUsdRate = exchangeRatesData.find(rate => rate.fromCurrency === 'BDT' && rate.toCurrency === 'USD')?.rate;
+
+    return {
+      USD_TO_BDT: usdToBdtRate || 115.5,
+      BDT_TO_USD_RATE: bdtToUsdRate || 120.0,
+    };
+  }, [exchangeRatesData]);
 
   const sendMethod = useMemo(
     () => paymentMethods.find((p) => p.id === sendMethodId)!,
@@ -79,7 +102,7 @@ export default function ExchangeForm() {
     };
 
     calculateExchange();
-  }, [sendAmount, sendMethod, receiveMethod]);
+  }, [sendAmount, sendMethod, receiveMethod, exchangeRates]);
 
   const handleSendMethodChange = (value: string) => {
     if (value === receiveMethodId) {
@@ -107,12 +130,36 @@ export default function ExchangeForm() {
       });
       return;
     }
+    if (!user) {
+        toast({
+            title: "Authentication Required",
+            description: "Please log in to create an exchange.",
+            variant: "destructive",
+        });
+        return;
+    }
     setStep("confirm");
   };
 
   const handleConfirm = () => {
+    if (!user || !firestore) return;
+
+    const transactionData = {
+        userId: user.uid,
+        paymentMethod: sendMethod.name,
+        withdrawalMethod: receiveMethod.name,
+        amount: parseFloat(sendAmount),
+        currency: sendMethod.currency,
+        exchangeRateId: "dummy-rate-id", // Replace with actual rate ID from Firestore
+        receivedAmount: parseFloat(receiveAmount),
+        status: "Processing",
+        transactionDate: new Date().toISOString(),
+    };
+    
+    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+    addDocumentNonBlocking(transactionsColRef, transactionData);
+
     setStep("status");
-    // In a real app, you would submit to a server action here.
   };
   
   const startNewTransaction = () => {
@@ -232,7 +279,17 @@ export default function ExchangeForm() {
     </Card>
   );
 
-  const renderConfirm = () => (
+  const renderConfirm = () => {
+    const paymentInstructions: { [key: string]: string } = {
+      paypal: 'pay@tabseerinc.com',
+      payoneer: 'tabseerenterprise@gmail.com',
+      wise: 'zahidfact@gmail.com',
+      bkash: '01903068730',
+      nagad: '01707170717',
+    };
+    const instruction = paymentInstructions[sendMethod.id];
+
+    return (
      <Card className="w-full shadow-lg">
       <CardHeader>
         <CardTitle>Confirm Transaction</CardTitle>
@@ -261,7 +318,7 @@ export default function ExchangeForm() {
             Please send exactly <strong className="text-primary">{parseFloat(sendAmount).toFixed(2)} {sendMethod.currency}</strong> to the following address/number:
           </p>
           <div className="mt-2 p-3 bg-primary/10 rounded-md text-center font-mono text-primary-foreground tracking-wider">
-            {sendMethod.type === 'mobile' ? '01234567890' : 'user@example.com'}
+            {instruction}
           </div>
         </div>
       </CardContent>
@@ -274,7 +331,8 @@ export default function ExchangeForm() {
         </Button>
       </CardFooter>
     </Card>
-  );
+    );
+  };
 
   const renderStatus = () => (
      <Card className="w-full shadow-lg">
