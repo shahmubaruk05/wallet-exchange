@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, UserCog, LogIn, LayoutDashboard } from "lucide-react";
+import { ArrowLeftRight, UserCog, LogIn, UserPlus, LayoutDashboard } from "lucide-react";
 import { useUser } from "@/firebase";
 
 const Header = () => {
@@ -35,12 +35,20 @@ const Header = () => {
                 </Button>
               </>
             ) : (
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">
-                  <LogIn className="h-5 w-5" />
-                   <span className="hidden sm:inline-block sm:ml-2">Login</span>
-                </Link>
-              </Button>
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/login">
+                    <LogIn className="h-5 w-5" />
+                    <span className="hidden sm:inline-block sm:ml-2">Login</span>
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                   <Link href="/signup">
+                    <UserPlus className="h-5 w-5" />
+                    <span className="hidden sm:inline-block sm:ml-2">Sign Up</span>
+                  </Link>
+                </Button>
+              </>
             )}
           </nav>
         </div>
