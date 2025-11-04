@@ -32,6 +32,8 @@ import type { ExchangeRate } from "@/lib/data";
 
 type Step = "form" | "confirm" | "status";
 
+const PAYPAL_FEE_PERCENTAGE = 0.05; // 5%
+
 export default function ExchangeForm() {
   const [step, setStep] = useState<Step>("form");
   const [sendAmount, setSendAmount] = useState<string>("100");
@@ -39,6 +41,7 @@ export default function ExchangeForm() {
   const [sendMethodId, setSendMethodId] = useState<string>("paypal");
   const [receiveMethodId, setReceiveMethodId] = useState<string>("bkash");
   const [isCalculating, setIsCalculating] = useState(false);
+  const [transactionFee, setTransactionFee] = useState<number>(0);
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -78,20 +81,29 @@ export default function ExchangeForm() {
       const amount = parseFloat(sendAmount);
       if (isNaN(amount) || amount <= 0) {
         setReceiveAmount("");
+        setTransactionFee(0);
         setIsCalculating(false);
         return;
       }
 
+      let fee = 0;
+      if (sendMethod.id === 'paypal') {
+        fee = amount * PAYPAL_FEE_PERCENTAGE;
+      }
+      setTransactionFee(fee);
+      
+      const amountAfterFee = amount - fee;
+
       let result = 0;
       if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
-        result = amount * exchangeRates.USD_TO_BDT;
+        result = amountAfterFee * exchangeRates.USD_TO_BDT;
       } else if (
         sendMethod.currency === "BDT" &&
         receiveMethod.currency === "USD"
       ) {
-        result = amount / exchangeRates.BDT_TO_USD_RATE;
+        result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
       } else {
-        result = amount; // Same currency
+        result = amountAfterFee; // Same currency
       }
 
       // Simulate calculation delay
@@ -288,6 +300,7 @@ export default function ExchangeForm() {
       nagad: '01707170717',
     };
     const instruction = paymentInstructions[sendMethod.id];
+    const amountNum = parseFloat(sendAmount);
 
     return (
      <Card className="w-full shadow-lg">
@@ -295,31 +308,42 @@ export default function ExchangeForm() {
         <CardTitle>Confirm Transaction</CardTitle>
         <CardDescription>Review the details and proceed with payment.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="p-4 rounded-lg bg-muted/50 space-y-4 text-sm">
+      <CardContent className="space-y-6">
+        <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm">
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">You Send</span>
-            <span className="font-semibold text-lg flex items-center gap-2">
+            <span className="font-semibold flex items-center gap-2">
               <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
-              {parseFloat(sendAmount).toFixed(2)} {sendMethod.currency}
+              {amountNum.toFixed(2)} {sendMethod.currency}
             </span>
           </div>
-          <div className="flex justify-between items-center">
+          {transactionFee > 0 && (
+             <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Transaction Fee ({sendMethod.name})</span>
+              <span className="font-semibold text-destructive">
+                - {transactionFee.toFixed(2)} {sendMethod.currency}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between items-center text-base">
             <span className="text-muted-foreground">You Receive</span>
-            <span className="font-semibold text-lg flex items-center gap-2">
+            <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
               <PaymentIcon id={receiveMethod.id} className="w-5 h-5"/>
               {receiveAmount} {receiveMethod.currency}
             </span>
           </div>
         </div>
-        <div className="p-4 rounded-lg border">
-          <h3 className="font-semibold mb-2">Payment Instructions</h3>
-          <p className="text-sm text-muted-foreground">
-            Please send exactly <strong className="text-primary">{parseFloat(sendAmount).toFixed(2)} {sendMethod.currency}</strong> to the following address/number:
-          </p>
-          <div className="mt-2 p-3 bg-primary/10 rounded-md text-center font-mono text-primary-foreground tracking-wider">
-            {instruction}
-          </div>
+
+        <div className="p-4 rounded-lg border space-y-4">
+            <div>
+                <h3 className="font-semibold mb-1">Step 1: Send Money</h3>
+                <p className="text-sm text-muted-foreground">
+                    Please send exactly <strong className="text-primary">{amountNum.toFixed(2)} {sendMethod.currency}</strong> to the following address/number:
+                </p>
+                <div className="mt-2 p-3 bg-primary/10 rounded-md text-center font-mono text-primary-foreground tracking-wider">
+                    {instruction}
+                </div>
+            </div>
         </div>
       </CardContent>
       <CardFooter className="flex-col sm:flex-row gap-2">
