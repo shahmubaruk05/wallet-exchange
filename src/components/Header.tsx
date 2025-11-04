@@ -30,10 +30,10 @@ const Header = () => {
                   </Link>
                 </Button>
                 {isAdmin && (
-                  <Button variant="ghost" size="icon" asChild>
+                  <Button variant="ghost" size="sm" asChild>
                     <Link href="/admin">
                       <UserCog className="h-5 w-5" />
-                      <span className="sr-only">Admin Dashboard</span>
+                      <span className="hidden sm:inline-block sm:ml-2">Admin</span>
                     </Link>
                   </Button>
                 )}
