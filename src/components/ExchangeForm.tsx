@@ -55,14 +55,14 @@ export default function ExchangeForm() {
   const { data: exchangeRatesData } = useCollection<ExchangeRate>(exchangeRatesQuery);
 
   const exchangeRates = useMemo(() => {
-    if (!exchangeRatesData) return { USD_TO_BDT: 122, BDT_TO_USD_RATE: 120.0 }; // Default values
+    if (!exchangeRatesData) return { USD_TO_BDT: 122, BDT_TO_USD_RATE: 127.0 }; // Default values
     
     const usdToBdtRate = exchangeRatesData.find(rate => rate.fromCurrency === 'USD' && rate.toCurrency === 'BDT')?.rate;
     const bdtToUsdRate = exchangeRatesData.find(rate => rate.fromCurrency === 'BDT' && rate.toCurrency === 'USD')?.rate;
 
     return {
       USD_TO_BDT: usdToBdtRate || 122,
-      BDT_TO_USD_RATE: bdtToUsdRate || 120.0,
+      BDT_TO_USD_RATE: bdtToUsdRate || 127.0,
     };
   }, [exchangeRatesData]);
 
