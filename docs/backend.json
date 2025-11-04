@@ -1,0 +1,198 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Wallet XChanger system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email"
+      ]
+    },
+    "ExchangeRate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExchangeRate",
+      "type": "object",
+      "description": "Represents the exchange rate between two currencies.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the exchange rate."
+        },
+        "fromCurrency": {
+          "type": "string",
+          "description": "The source currency code (e.g., USD, BDT)."
+        },
+        "toCurrency": {
+          "type": "string",
+          "description": "The destination currency code (e.g., USD, BDT)."
+        },
+        "rate": {
+          "type": "number",
+          "description": "The exchange rate value."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "The timestamp when the exchange rate was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "fromCurrency",
+        "toCurrency",
+        "rate",
+        "lastUpdated"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a transaction made by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Transaction)"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "The payment method used for the transaction (e.g., Bkash, Nagad, PayPal)."
+        },
+        "withdrawalMethod": {
+          "type": "string",
+          "description": "The withdrawal method chosen for the transaction (e.g., Bkash, Nagad, PayPal)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the transaction (e.g., USD, BDT)."
+        },
+        "exchangeRateId": {
+          "type": "string",
+          "description": "Reference to ExchangeRate. (Relationship: Transaction 1:1 ExchangeRate)"
+        },
+        "receivedAmount": {
+          "type": "number",
+          "description": "The amount received after exchange."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the transaction (e.g., Complete, Processing, Paid)."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The date and time of the transaction.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "paymentMethod",
+        "withdrawalMethod",
+        "amount",
+        "currency",
+        "exchangeRateId",
+        "receivedAmount",
+        "status",
+        "transactionDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Transactions are stored as subcollections for each user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/exchange_rates/{exchangeRateId}",
+        "definition": {
+          "entityName": "ExchangeRate",
+          "schema": {
+            "$ref": "#/backend/entities/ExchangeRate"
+          },
+          "description": "Stores exchange rates between different currencies.  These rates are managed by admins and used for transaction calculations.",
+          "params": [
+            {
+              "name": "exchangeRateId",
+              "description": "The unique identifier for the exchange rate."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction data for each user. It supports path-based ownership ensuring only the user can read/write their own transaction data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. The exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles. Path-based ownership ensures that only the user (or an admin with appropriate privileges) can access their own profile data. This eliminates the need for complex security rules involving `get()` calls, thereby supporting authorization independence.\n\n2.  **Exchange Rates Collection (`/exchange_rates/{exchangeRateId}`):** Stores the exchange rates. This collection is segregated to simplify security rules and enforce that all documents in this collection share the same access needs. This ensures that rules are not filters and supports secure `list` operations.\n\n3.  **Transactions Subcollection (`/users/{userId}/transactions/{transactionId}`):** Stores transactions for each user. By nesting transactions within user documents, we maintain path-based ownership, ensuring that only the user or an admin can access their transactions. This provides authorization independence and simplifies security rules.\n\nThe structure supports QAPs (rules are not filters) by segregating data based on access needs and using path-based ownership. This prevents unauthorized access and ensures that list operations are secure."
+  }
+}
