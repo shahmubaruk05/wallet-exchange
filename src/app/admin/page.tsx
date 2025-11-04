@@ -15,9 +15,11 @@ import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO } from 'date-fns';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, collectionGroup } from "firebase/firestore";
-import type { Transaction, TransactionStatus } from "@/lib/data";
+import type { Transaction } from "@/lib/data";
+import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
 
-const getStatusVariant = (status: TransactionStatus) => {
+
+const getStatusVariant = (status: Transaction['status']) => {
   switch (status) {
     case 'Completed':
       return 'bg-accent/20 text-accent-foreground hover:bg-accent/30';
@@ -39,11 +41,13 @@ const AdminPage = () => {
     return query(collectionGroup(firestore, 'transactions'), orderBy('transactionDate', 'desc'));
   }, [firestore]);
 
-  const { data: allTransactions, isLoading } = useCollection<Omit<Transaction, 'id'>>(transactionsQuery);
+  const { data: allTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
   const sortedTransactions = useMemo(() => {
     if (!allTransactions) return [];
-    return [...allTransactions].sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
+    // The data is already sorted by query, but if we need client-side sort:
+    // return [...allTransactions].sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
+    return allTransactions;
   }, [allTransactions]);
 
   return (
@@ -77,30 +81,32 @@ const AdminPage = () => {
                 </TableRow>
               )}
               {!isLoading && sortedTransactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{format(parseISO(tx.transactionDate), 'PPp')}</TableCell>
-                  <TableCell className="font-mono text-xs">{tx.userId}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                       <PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5"/>
-                       <span>{tx.paymentMethod}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                     <div className="flex items-center gap-2">
-                       <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
-                       <span>{tx.withdrawalMethod}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="font-mono">
-                      {tx.amount.toFixed(2)} {tx.currency} &rarr; {tx.receivedAmount.toFixed(2)} BDT
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
-                  </TableCell>
-                </TableRow>
+                <TransactionDetailsDialog key={tx.id} transaction={tx}>
+                  <TableRow className="cursor-pointer">
+                    <TableCell className="font-medium">{format(parseISO(tx.transactionDate), 'PPp')}</TableCell>
+                    <TableCell className="font-mono text-xs">{tx.userId}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                         <PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5"/>
+                         <span>{tx.paymentMethod}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                       <div className="flex items-center gap-2">
+                         <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
+                         <span>{tx.withdrawalMethod}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="font-mono">
+                        {tx.amount.toFixed(2)} {tx.currency} &rarr; {tx.receivedAmount.toFixed(2)} BDT
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                </TransactionDetailsDialog>
               ))}
             </TableBody>
           </Table>

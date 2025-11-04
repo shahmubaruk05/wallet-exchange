@@ -14,10 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
-import type { Transaction, TransactionStatus } from "@/lib/data";
+import { collection, query, orderBy } from "firebase/firestore";
+import type { Transaction } from "@/lib/data";
+import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
 
-const getStatusVariant = (status: TransactionStatus) => {
+const getStatusVariant = (status: Transaction['status']) => {
   switch (status) {
     case 'Completed':
       return 'bg-accent/20 text-accent-foreground hover:bg-accent/30';
@@ -42,7 +43,7 @@ const UserTransactionsPage = () => {
     );
   }, [firestore, user]);
 
-  const { data: userTransactions, isLoading } = useCollection<Omit<Transaction, 'id'>>(userTransactionsQuery);
+  const { data: userTransactions, isLoading } = useCollection<Transaction>(userTransactionsQuery);
   
   return (
     <div className="space-y-6">
@@ -74,29 +75,31 @@ const UserTransactionsPage = () => {
                 </TableRow>
               )}
               {!isLoading && userTransactions && userTransactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{format(parseISO(tx.transactionDate), 'PPp')}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                       <PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5"/>
-                       <span>{tx.paymentMethod}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                     <div className="flex items-center gap-2">
-                       <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
-                       <span>{tx.withdrawalMethod}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="font-mono">
-                      {tx.amount.toFixed(2)} {tx.currency} &rarr; {tx.receivedAmount.toFixed(2)} BDT
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
-                  </TableCell>
-                </TableRow>
+                <TransactionDetailsDialog key={tx.id} transaction={tx}>
+                  <TableRow className="cursor-pointer">
+                    <TableCell className="font-medium">{format(parseISO(tx.transactionDate), 'PPp')}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                         <PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5"/>
+                         <span>{tx.paymentMethod}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                       <div className="flex items-center gap-2">
+                         <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
+                         <span>{tx.withdrawalMethod}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="font-mono">
+                        {tx.amount.toFixed(2)} {tx.currency} &rarr; {tx.receivedAmount.toFixed(2)} BDT
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                </TransactionDetailsDialog>
               ))}
             </TableBody>
           </Table>

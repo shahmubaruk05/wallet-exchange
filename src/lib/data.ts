@@ -33,6 +33,9 @@ export type Transaction = {
   receivedAmount: number;
   status: TransactionStatus;
   transactionDate: string; // Should be ISO string
+  sendingAccountId: string;
+  transactionId: string;
+  receivingAccountId: string;
 };
 
 export type ExchangeRate = {
