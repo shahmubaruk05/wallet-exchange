@@ -82,7 +82,9 @@ export type CardTopUp = {
   createdAt: string; // ISO string
   sendingAccountId: string;
   transactionId: string;
+  transactionFee: number;
   adminNote?: string;
 };
 
     
+

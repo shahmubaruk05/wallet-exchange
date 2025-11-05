@@ -39,6 +39,7 @@ export default function CardTopUpPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [rateText, setRateText] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [transactionFee, setTransactionFee] = useState<number>(0);
 
   // Confirmation step state
   const [sendingAccountId, setSendingAccountId] = useState('');
@@ -57,9 +58,9 @@ export default function CardTopUpPage() {
 
   const exchangeRates = useMemo(() => {
     if (!exchangeRatesData) return { BDT_TO_USD_RATE: 127.0 };
-    const bdtToUsdRate = exchangeRatesData.find(rate => rate.fromCurrency === 'BDT' && rate.toCurrency === 'USD')?.rate;
+    const bdtToUsdRateDoc = exchangeRatesData.find(rate => rate.fromCurrency === 'BDT' && rate.toCurrency === 'USD');
     return {
-      BDT_TO_USD_RATE: bdtToUsdRate || 127.0,
+      BDT_TO_USD_RATE: bdtToUsdRateDoc?.rate || 127.0,
     };
   }, [exchangeRatesData]);
 
@@ -74,21 +75,38 @@ export default function CardTopUpPage() {
       const amount = parseFloat(sendAmount);
       if (isNaN(amount) || amount <= 0) {
         setReceiveAmount("");
+        setTransactionFee(0);
         setRateText("");
         setIsCalculating(false);
         return;
       }
       
+      let fee = 0;
+      const feePercentages: { [key: string]: number } = {
+        bkash: 0.0185,
+        nagad: 0.014,
+        wise: 0.029,
+        payoneer: 0.01,
+      };
+
+      if (sendMethod.id in feePercentages) {
+        fee = amount * feePercentages[sendMethod.id];
+      }
+      
+      setTransactionFee(fee);
+      
+      const amountAfterFee = amount - fee;
+
       let result = 0;
       let rateString = "";
       if (sendMethod.currency === "BDT") {
-        result = amount / exchangeRates.BDT_TO_USD_RATE;
+        result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
         rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
       } else if (sendMethod.currency === "USD") {
-        result = amount; // 1:1 for USD to USD
+        result = amountAfterFee; // 1:1 for USD to USD after fee
         rateString = `1 USD = 1 USD`;
       } else {
-        result = amount; // Fallback for other currencies
+        result = amountAfterFee; // Fallback for other currencies
         rateString = `1 ${sendMethod.currency} = 1 ${sendMethod.currency}`;
       }
 
@@ -141,10 +159,12 @@ export default function CardTopUpPage() {
         sentAmount: parseFloat(sendAmount),
         sentCurrency: sendMethod.currency,
         topUpAmountUSD: parseFloat(receiveAmount),
-        status: "Pending",
+        status: "Pending" as const,
         createdAt: new Date().toISOString(),
         sendingAccountId,
         transactionId,
+        transactionFee,
+        adminNote: "",
     };
     
     const topUpsColRef = collection(firestore, `card_top_ups`);
@@ -230,17 +250,26 @@ export default function CardTopUpPage() {
                 </div>
             </div>
 
-            <div className="flex justify-center my-2 items-center text-sm font-medium text-muted-foreground">
+            <div className="flex flex-col sm:flex-row justify-center items-center text-sm font-medium text-muted-foreground gap-4">
                 {isCalculating ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-                ) : rateText ? (
-                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
-                    <Info className="h-4 w-4" />
-                    <span>Rate: {rateText}</span>
-                </div>
-                ) : null}
+                ) : (
+                    <>
+                    {rateText && (
+                        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                            <Info className="h-4 w-4" />
+                            <span>Rate: {rateText}</span>
+                        </div>
+                    )}
+                    {transactionFee > 0 && (
+                        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                             <Info className="h-4 w-4" />
+                             <span>Fee: {transactionFee.toFixed(2)} {sendMethod.currency}</span>
+                        </div>
+                    )}
+                    </>
+                )}
             </div>
-
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div className="space-y-2">
@@ -341,20 +370,28 @@ export default function CardTopUpPage() {
                 </div>
                 
                 <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm mt-4">
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">You are sending</span>
-                    <span className="font-semibold flex items-center gap-2">
-                    <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
-                    {amountNum.toFixed(2)} {sendMethod.currency}
-                    </span>
-                </div>
-                <div className="flex justify-between items-center text-base">
-                    <span className="text-muted-foreground">You will receive</span>
-                    <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-primary"/>
-                    {receiveAmount} USD
-                    </span>
-                </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">You are sending</span>
+                        <span className="font-semibold flex items-center gap-2">
+                        <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
+                        {amountNum.toFixed(2)} {sendMethod.currency}
+                        </span>
+                    </div>
+                    {transactionFee > 0 && (
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Fee</span>
+                            <span className="font-semibold text-destructive">
+                               - {transactionFee.toFixed(2)} {sendMethod.currency}
+                            </span>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center text-base">
+                        <span className="text-muted-foreground">You will receive on card</span>
+                        <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
+                        <DollarSign className="w-5 h-5 text-primary"/>
+                        {receiveAmount} USD
+                        </span>
+                    </div>
                 </div>
             </div>
             </CardContent>
@@ -408,4 +445,3 @@ export default function CardTopUpPage() {
   }
 }
 
-    
