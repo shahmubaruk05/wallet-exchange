@@ -44,6 +44,7 @@ const formSchema = z.object({
     message: "Expiry date must be in MM/YY format.",
   }),
   cvc: z.string().min(3, "CVC must be 3-4 digits.").max(4),
+  brand: z.string().min(2, "Brand is required."),
 });
 
 export function ManageCardApplicationDialog({
@@ -60,6 +61,7 @@ export function ManageCardApplicationDialog({
       cardNumber: application.cardNumber || "",
       expiryDate: application.expiryDate || "",
       cvc: application.cvc || "",
+      brand: application.brand || "Mastercard",
     },
   });
 
@@ -74,9 +76,14 @@ export function ManageCardApplicationDialog({
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
     const appRef = doc(firestore, `card_applications/${application.id}`);
+    
+    // Extract last 4 digits
+    const last4 = values.cardNumber.slice(-4);
+
     updateDocumentNonBlocking(appRef, {
         ...values,
-        status: 'Approved'
+        status: 'Approved',
+        mercuryCardLast4: last4,
     });
      toast({
       title: "Card Details Updated",
@@ -157,6 +164,19 @@ export function ManageCardApplicationDialog({
                                 )}
                             />
                         </div>
+                        <FormField
+                            control={form.control}
+                            name="brand"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Card Brand</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Mastercard" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </form>
                  </Form>
             </div>

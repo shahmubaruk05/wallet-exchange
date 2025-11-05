@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,11 +41,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, Clock, XCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import type { CardApplication, CardTransaction } from "@/lib/data";
-import { mockCardTransactions } from "@/lib/data";
+import type { CardApplication } from "@/lib/data";
 import VirtualCard from "@/components/VirtualCard";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -54,8 +54,84 @@ const formSchema = z.object({
   billingAddress: z.string().min(10, "Billing address is too short."),
 });
 
+
+const getStatusVariant = (status?: string) => {
+  switch (status?.toLowerCase()) {
+    case "posted":
+      return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
+    case "pending":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200";
+    case "failed":
+    case "declined":
+      return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
+    default:
+      return "outline";
+  }
+};
+
+
 const CardTransactionList = () => {
-  const transactions = mockCardTransactions; // Using mock data
+    const { user } = useUser();
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [hasCard, setHasCard] = useState(false);
+
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            if (!user) return;
+
+            try {
+                const token = await user.getIdToken();
+                const response = await fetch("/api/mercury/transactions", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                
+                const data = await response.json();
+
+                if (!response.ok || !data.ok) {
+                    throw new Error(data.error || "Could not load card transactions.");
+                }
+
+                if (data.hasCard) {
+                    setHasCard(true);
+                    setTransactions(data.transactions || []);
+                } else {
+                    setHasCard(false);
+                }
+
+            } catch (e: any) {
+                setError(e.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTransactions();
+    }, [user]);
+
+  if (loading) {
+    return (
+        <div className="mt-8 flex justify-center items-center h-20">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2">Loading transactions...</span>
+        </div>
+    )
+  }
+
+  if (error) {
+     return <p className="mt-8 text-center text-destructive">{error}</p>;
+  }
+
+  if (!hasCard) {
+    return <p className="mt-8 text-center text-muted-foreground">You do not have an approved Mercury team card yet.</p>;
+  }
+
+  if (transactions.length === 0) {
+    return <p className="mt-8 text-center text-muted-foreground">No transactions found for this card.</p>;
+  }
 
   return (
      <Card className="mt-8">
@@ -69,24 +145,29 @@ const CardTransactionList = () => {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {transactions.map((tx) => (
                 <TableRow key={tx.id}>
-                  <TableCell className="text-muted-foreground text-xs">{format(parseISO(tx.date), "MMM d")}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{format(parseISO(tx.date), "PP")}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                       {tx.type === 'debit' ? 
+                       {tx.amount < 0 ? 
                         <ArrowUpRight className="h-4 w-4 text-destructive" /> : 
                         <ArrowDownLeft className="h-4 w-4 text-green-500" />
                        }
-                       <span className="font-medium">{tx.description}</span>
+                       <span className="font-medium">{tx.merchant}</span>
                     </div>
                   </TableCell>
-                  <TableCell className={cn("text-right font-mono", tx.type === 'debit' ? 'text-destructive' : 'text-green-500')}>
-                    {tx.type === 'debit' ? '-' : '+'} ${tx.amount.toFixed(2)}
+                  <TableCell>
+                      <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
+                  </TableCell>
+                  <TableCell className={cn("text-right font-mono", tx.amount < 0 ? 'text-destructive' : 'text-green-500')}>
+                     {tx.amount < 0 ? '' : '+'}
+                     {tx.amount.toFixed(2)} {tx.currency}
                   </TableCell>
                 </TableRow>
               ))}
