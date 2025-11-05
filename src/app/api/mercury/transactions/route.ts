@@ -95,6 +95,10 @@ export async function GET(req: Request) {
     if (e.code === 'auth/id-token-expired') {
         return NextResponse.json({ ok: false, error: 'TOKEN_EXPIRED' }, { status: 401 });
     }
+    // Don't expose internal Firebase Admin errors to the client
+    if (e.message?.includes("'aud' claim")) {
+       return NextResponse.json({ ok: false, error: 'TOKEN_AUDIENCE_MISMATCH' }, { status: 401 });
+    }
     return NextResponse.json({ ok: false, error: e.message || 'INTERNAL_SERVER_ERROR' }, { status: 500 });
   }
 }

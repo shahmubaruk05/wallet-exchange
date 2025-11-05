@@ -207,7 +207,7 @@ const UserCardPage = () => {
     const newApplicationData = {
       ...values,
       userId: user.uid,
-      status: "Pending",
+      status: "Pending" as const,
       appliedAt: new Date().toISOString(),
     };
 

@@ -64,6 +64,6 @@ export type CardApplication = {
   cardNumber?: string;
   expiryDate?: string; // MM/YY
   cvc?: string;
-  mercuryCardLast4?: string;
   brand?: string;
+  mercuryCardLast4?: string;
 };
