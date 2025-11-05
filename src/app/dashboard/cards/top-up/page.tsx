@@ -68,8 +68,6 @@ export default function CardTopUpPage() {
     [sendMethodId]
   );
   
-  const bdtPaymentMethods = useMemo(() => paymentMethods.filter(p => p.currency === 'BDT'), []);
-
   useEffect(() => {
     const calculateExchange = () => {
       setIsCalculating(true);
@@ -86,8 +84,11 @@ export default function CardTopUpPage() {
       if (sendMethod.currency === "BDT") {
         result = amount / exchangeRates.BDT_TO_USD_RATE;
         rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
+      } else if (sendMethod.currency === "USD") {
+        result = amount; // 1:1 for USD to USD
+        rateString = `1 USD = 1 USD`;
       } else {
-        result = amount; // Should not happen with current logic, but as a fallback
+        result = amount; // Fallback for other currencies
         rateString = `1 ${sendMethod.currency} = 1 ${sendMethod.currency}`;
       }
 
@@ -202,7 +203,7 @@ export default function CardTopUpPage() {
                     </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                    {bdtPaymentMethods.map((method) => (
+                    {paymentMethods.map((method) => (
                         <SelectItem key={method.id} value={method.id}>
                         <div className="flex items-center gap-3">
                             <PaymentIcon id={method.id} />
@@ -282,6 +283,9 @@ export default function CardTopUpPage() {
     const paymentInstructions: { [key: string]: string } = {
       bkash: '01903068730',
       nagad: '01707170717',
+      paypal: 'pay@tabseerinc.com',
+      payoneer: 'tabseerenterprise@gmail.com',
+      wise: 'zahidfact@gmail.com',
     };
     const instruction = paymentInstructions[sendMethod.id];
     const amountNum = parseFloat(sendAmount);
