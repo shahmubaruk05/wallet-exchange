@@ -131,6 +131,15 @@ export default function CardTopUpPage() {
       });
       return;
     }
+     if (parseFloat(receiveAmount) < 50) {
+      toast({
+        title: "Minimum Top Up is $50",
+        description:
+          "After fees, the amount you receive on your card must be at least $50.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!user) {
         toast({
             title: "Authentication Required",
@@ -196,7 +205,7 @@ export default function CardTopUpPage() {
           Card Top Up
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Add funds to your virtual card.
+          Add funds to your virtual card. Minimum top up is $50.
         </p>
       </div>
         <Card className="w-full shadow-lg">
@@ -445,4 +454,3 @@ export default function CardTopUpPage() {
       return renderForm();
   }
 }
-
