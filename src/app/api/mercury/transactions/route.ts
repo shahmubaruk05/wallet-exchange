@@ -1,99 +1,48 @@
 
 import { NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp, getApps, App } from "firebase-admin/app";
 
-// Helper to initialize Firebase Admin SDK only once.
-function getFirebaseAdminApp(): App {
-  if (getApps().length > 0) {
-    return getApps()[0] as App;
-  }
-  // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
-  // for authentication, which is appropriate for a server environment.
-  return initializeApp();
-}
-
-
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const app = getFirebaseAdminApp();
-    const db = getFirestore(app);
+    const token = process.env.MERCURY_API_TOKEN;
 
-    const { searchParams } = new URL(req.url);
-    const uid = searchParams.get('uid');
-
-    if (!uid) {
-       return NextResponse.json({ ok: false, error: "USER_ID_MISSING" }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ ok: false, error: "Missing MERCURY_API_TOKEN" }, { status: 500 });
     }
 
-    const cardsSnap = await db.collection("card_applications")
-      .where("userId", "==", uid)
-      .where("status", "==", "Approved")
-      .limit(1)
-      .get();
-
-    if (cardsSnap.empty) {
-      return NextResponse.json({ ok: true, hasCard: false, transactions: [] });
-    }
-
-    const cardData = cardsSnap.docs[0].data();
-    const mercuryCardLast4 = cardData.mercuryCardLast4;
-    const mercuryApiToken = process.env.MERCURY_API_TOKEN;
-
-    if (!mercuryApiToken) {
-        console.error("MERCURY_API_TOKEN is not set.");
-        return NextResponse.json({ ok: false, error: 'SERVER_CONFIG_ERROR' }, { status: 500 });
-    }
-
-    if (!mercuryCardLast4) {
-      return NextResponse.json({ ok: true, hasCard: true, card: cardData, transactions: [] });
-    }
-
-    const mercuryResponse = await fetch("https://api.mercury.com/api/v1/transactions?limit=20", {
+    const res = await fetch("https://api.mercury.com/api/v1/transactions?limit=10", {
       method: "GET",
       headers: {
-        // As per instructions, do not add "Bearer "
-        "Authorization": mercuryApiToken,
+        Authorization: token, // IMPORTANT: no 'Bearer' prefix
         "Content-Type": "application/json",
       },
+      cache: "no-store",
     });
 
-    if (!mercuryResponse.ok) {
-      const errorBody = await mercuryResponse.text();
-      console.error(`Mercury API Error: ${mercuryResponse.status}`, errorBody);
-      throw new Error(`MERCURY_API_ERROR`);
+    const text = await res.text();
+
+    if (!res.ok) {
+      console.error("Mercury API error:", res.status, text);
+      return NextResponse.json({
+        ok: false,
+        error: `Mercury API responded with ${res.status}`,
+        body: text,
+      });
     }
 
-    const mercuryData = await mercuryResponse.json();
-    
-    const txs = (mercuryData.transactions || []).filter(
-      (t: any) => t.card?.last4 === mercuryCardLast4
-    );
-
-    const formatted = txs.map((t: any) => ({
-      id: t.id,
-      date: t.postedAt || t.createdAt,
-      amount: t.amount,
-      currency: t.currency,
-      merchant: t.merchant?.name || t.counterparty?.name || 'Unknown Merchant',
-      status: t.status,
+    const data = JSON.parse(text || "{}");
+    const raw = data.transactions || data.data || [];
+    const transactions = raw.map((t: any) => ({
+      id: t.id ?? "",
+      date: t.created_at ?? t.posted_at,
+      description: t.merchant_name ?? t.description ?? "Transaction",
+      amount: t.amount ?? 0,
+      currency: t.currency ?? "USD",
+      status: t.status ?? "posted",
     }));
 
-    return NextResponse.json({
-      ok: true,
-      hasCard: true,
-      card: {
-        mercuryCardLast4: cardData.mercuryCardLast4,
-        brand: cardData.brand,
-        status: cardData.status,
-      },
-      transactions: formatted,
-    });
-  } catch (e: any) {
-    console.error("Error in /api/mercury/transactions:", e);
-    return NextResponse.json({ ok: false, error: e.message || 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+    return NextResponse.json({ ok: true, transactions });
+  } catch (err: any) {
+    console.error("Mercury route error:", err);
+    return NextResponse.json({ ok: false, error: err.message || "UNKNOWN_ERROR" }, { status: 500 });
   }
 }
-
-// Required for Next.js to treat this as a dynamic route
-export const dynamic = 'force-dynamic';
