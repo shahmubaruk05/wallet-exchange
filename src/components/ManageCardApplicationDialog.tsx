@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
@@ -37,15 +38,19 @@ interface ManageCardApplicationDialogProps {
 }
 
 const formSchema = z.object({
-  cardNumber: z.string().refine((val) => /^\d{4} \d{4} \d{4} \d{4}$/.test(val), {
+  cardNumber: z.string().refine((val) => !val || /^\d{4} \d{4} \d{4} \d{4}$/.test(val), {
     message: "Card number must be 16 digits.",
   }),
-  expiryDate: z.string().refine((val) => /^(0[1-9]|1[0-2])\/\d{2}$/.test(val), {
+  expiryDate: z.string().refine((val) => !val || /^(0[1-9]|1[0-2])\/\d{2}$/.test(val), {
     message: "Expiry date must be in MM/YY format.",
   }),
-  cvc: z.string().min(3, "CVC must be 3-4 digits.").max(4),
-  brand: z.string().min(2, "Brand is required."),
+  cvc: z.string().refine((val) => !val || (val.length >= 3 && val.length <= 4), {
+    message: "CVC must be 3-4 digits.",
+  }),
+  brand: z.string().optional(),
+  adminInstruction: z.string().optional(),
 });
+
 
 export function ManageCardApplicationDialog({
   application,
@@ -62,6 +67,7 @@ export function ManageCardApplicationDialog({
       expiryDate: application.expiryDate || "",
       cvc: application.cvc || "",
       brand: application.brand || "Mastercard",
+      adminInstruction: application.adminInstruction || "",
     },
   });
 
@@ -77,15 +83,22 @@ export function ManageCardApplicationDialog({
     if (!firestore) return;
     const appRef = doc(firestore, `card_applications/${application.id}`);
     
-    // Extract last 4 digits
-    const last4 = values.cardNumber.slice(-4);
+    // Extract last 4 digits if card number is provided
+    const last4 = values.cardNumber ? values.cardNumber.slice(-4) : undefined;
 
-    updateDocumentNonBlocking(appRef, {
-        ...values,
-        status: 'Approved',
-        mercuryCardLast4: last4,
-    });
-     toast({
+    const dataToUpdate: any = {
+      ...values,
+      status: 'Approved',
+      mercuryCardLast4: last4,
+    };
+
+    if (!values.adminInstruction) {
+      dataToUpdate.adminInstruction = ""; // Explicitly clear if empty
+    }
+
+    updateDocumentNonBlocking(appRef, dataToUpdate);
+
+    toast({
       title: "Card Details Updated",
       description: "The virtual card has been issued/updated successfully.",
       className: "bg-accent text-accent-foreground",
@@ -119,8 +132,8 @@ export function ManageCardApplicationDialog({
                 <DetailRow label="Billing Address" value={application.billingAddress} />
             </dl>
             <div className="pt-4 border-t">
-                <h3 className="font-semibold">Issue Virtual Card</h3>
-                <p className="text-xs text-muted-foreground mb-4">Fill these details to approve and issue the card.</p>
+                <h3 className="font-semibold">Issue Virtual Card / Instructions</h3>
+                <p className="text-xs text-muted-foreground mb-4">Fill card details to approve or add an instruction for the user.</p>
                  <Form {...form}>
                     <form id="card-issue-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
@@ -177,6 +190,19 @@ export function ManageCardApplicationDialog({
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="adminInstruction"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Instruction for User</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="e.g., Your card is ready for use..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </form>
                  </Form>
             </div>
@@ -185,7 +211,7 @@ export function ManageCardApplicationDialog({
         <DialogFooter className="flex-wrap gap-2">
             <Button form="card-issue-form" type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                Approve & Issue Card
+                Approve & Save Changes
             </Button>
             {application.status !== 'Rejected' && (
                  <Button variant="destructive" onClick={() => handleStatusChange('Rejected')}>

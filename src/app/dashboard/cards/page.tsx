@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,9 +32,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Clock, XCircle } from "lucide-react";
+import { Loader2, Clock, XCircle, Info } from "lucide-react";
 import type { CardApplication } from "@/lib/data";
 import VirtualCard from "@/components/VirtualCard";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -101,6 +102,15 @@ const UserCardPage = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4 text-center">Your Virtual Card</h2>
               <VirtualCard application={application} />
+              {application.adminInstruction && (
+                <Alert className="mt-6">
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Note from Admin</AlertTitle>
+                  <AlertDescription>
+                    {application.adminInstruction}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           );
         case "Pending":
@@ -111,6 +121,15 @@ const UserCardPage = () => {
               <p className="mt-2 text-muted-foreground">
                 Your application is currently under review. You will be notified once a decision is made.
               </p>
+               {application.adminInstruction && (
+                <Alert className="mt-6 text-left">
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Note from Admin</AlertTitle>
+                  <AlertDescription>
+                    {application.adminInstruction}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           );
         case "Rejected":
@@ -121,6 +140,15 @@ const UserCardPage = () => {
               <p className="mt-2 text-muted-foreground">
                 We're sorry, but your card application could not be approved at this time.
               </p>
+               {application.adminInstruction && (
+                <Alert className="mt-6 text-left" variant="destructive">
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Note from Admin</AlertTitle>
+                  <AlertDescription>
+                    {application.adminInstruction}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           );
       }

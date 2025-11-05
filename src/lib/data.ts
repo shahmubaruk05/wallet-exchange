@@ -66,4 +66,5 @@ export type CardApplication = {
   cvc?: string;
   brand?: string;
   mercuryCardLast4?: string;
+  adminInstruction?: string; // Instruction from admin to the user
 };

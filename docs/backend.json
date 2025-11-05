@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -194,6 +195,10 @@
         "cvc": {
           "type": "string",
           "description": "The card's CVC code."
+        },
+        "adminInstruction": {
+          "type": "string",
+          "description": "An instruction or note from the admin to the card applicant."
         }
       },
       "required": [
