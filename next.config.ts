@@ -30,6 +30,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverRuntimeConfig: {
+    MERCURY_API_TOKEN: process.env.MERCURY_API_TOKEN,
+  },
   devServer: {
     allowedDevOrigins: [
       'https://6000-firebase-studio-1762288315383.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev',

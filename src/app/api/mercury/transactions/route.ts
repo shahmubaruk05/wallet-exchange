@@ -1,5 +1,7 @@
 
 import { NextResponse } from "next/server";
+import getConfig from 'next/config';
+
 
 export async function GET(req: Request) {
   try {
@@ -9,8 +11,10 @@ export async function GET(req: Request) {
     if (!cardLast4) {
       return NextResponse.json({ ok: false, error: "Card last 4 digits are required." }, { status: 400 });
     }
+    
+    const { serverRuntimeConfig } = getConfig();
+    const token = serverRuntimeConfig.MERCURY_API_TOKEN;
 
-    const token = process.env.MERCURY_API_TOKEN;
     if (!token) {
       return NextResponse.json({ ok: false, error: "Missing MERCURY_API_TOKEN" }, { status: 500 });
     }
@@ -57,3 +61,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "An internal server error occurred." }, { status: 500 });
   }
 }
+
