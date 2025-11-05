@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,7 +41,7 @@ import {
   collection,
   query,
   orderBy,
-  collectionGroup,
+  getDocs,
   doc,
 } from "firebase/firestore";
 import type { Transaction } from "@/lib/data";
@@ -67,7 +67,9 @@ const getStatusVariant = (status: Transaction["status"]) => {
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters." }),
 });
 
 const AdminLoginPage = () => {
@@ -118,7 +120,11 @@ const AdminLoginPage = () => {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -135,25 +141,46 @@ const AdminLoginPage = () => {
   );
 };
 
-
 const AdminDashboard = () => {
   const firestore = useFirestore();
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const transactionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collectionGroup(firestore, "transactions"),
-      orderBy("transactionDate", "desc")
-    );
+  useEffect(() => {
+    const fetchAllTransactions = async () => {
+      if (!firestore) return;
+      setIsLoading(true);
+      try {
+        const usersSnapshot = await getDocs(collection(firestore, "users"));
+        const transactionsPromises = usersSnapshot.docs.map(async (userDoc) => {
+          const transactionsQuery = query(
+            collection(firestore, `users/${userDoc.id}/transactions`),
+            orderBy("transactionDate", "desc")
+          );
+          const transactionsSnapshot = await getDocs(transactionsQuery);
+          return transactionsSnapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
+          );
+        });
+
+        const transactionsByUsers = await Promise.all(transactionsPromises);
+        const flattenedTransactions = transactionsByUsers.flat();
+        
+        flattenedTransactions.sort((a, b) => 
+            parseISO(b.transactionDate).getTime() - parseISO(a.transactionDate).getTime()
+        );
+
+        setAllTransactions(flattenedTransactions);
+      } catch (error) {
+        console.error("Error fetching all transactions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllTransactions();
   }, [firestore]);
 
-  const { data: allTransactions, isLoading } =
-    useCollection<Transaction>(transactionsQuery);
-
-  const sortedTransactions = useMemo(() => {
-    if (!allTransactions) return [];
-    return allTransactions;
-  }, [allTransactions]);
 
   return (
     <div className="space-y-6">
@@ -178,11 +205,14 @@ const AdminDashboard = () => {
               {isLoading && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center">
-                    Loading transactions...
+                    <div className="flex justify-center items-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span className="ml-2">Loading transactions...</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && sortedTransactions.length === 0 && (
+              {!isLoading && allTransactions.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center">
                     No transactions found.
@@ -190,7 +220,7 @@ const AdminDashboard = () => {
                 </TableRow>
               )}
               {!isLoading &&
-                sortedTransactions.map((tx) => (
+                allTransactions.map((tx) => (
                   <TransactionDetailsDialog key={tx.id} transaction={tx}>
                     <TableRow className="cursor-pointer">
                       <TableCell className="font-medium">
@@ -240,20 +270,22 @@ const AdminDashboard = () => {
 };
 
 const NotAuthorized = () => {
-    const auth = useAuth();
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-            <Card className="p-8">
-                <CardHeader>
-                    <CardTitle className="text-destructive">Access Denied</CardTitle>
-                    <CardDescription>You are not authorized to view this page.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <Button onClick={() => auth?.signOut()}>Logout</Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
+  const auth = useAuth();
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <Card className="p-8">
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>
+            You are not authorized to view this page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => auth?.signOut()}>Logout</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
 const AdminPage = () => {
@@ -268,14 +300,18 @@ const AdminPage = () => {
   const { data: userData, isLoading: isUserDocLoading } = useDoc(userDocRef);
 
   if (isUserLoading || (user && isUserDocLoading)) {
-    return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (!user) {
     return <AdminLoginPage />;
   }
-  
-  const isAdmin = (userData as any)?.role === 'admin';
+
+  const isAdmin = (userData as any)?.role === "admin";
 
   if (!isAdmin) {
     return <NotAuthorized />;
@@ -285,3 +321,5 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
+
+    
