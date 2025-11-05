@@ -12,10 +12,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "Card last 4 digits are required." }, { status: 400 });
     }
     
-    const { serverRuntimeConfig } = getConfig();
-    const token = serverRuntimeConfig.MERCURY_API_TOKEN;
+    const token = process.env.MERCURY_API_TOKEN;
 
     if (!token) {
+      console.error("MERCURY_API_TOKEN is not set in the environment.");
       return NextResponse.json({ ok: false, error: "Missing MERCURY_API_TOKEN" }, { status: 500 });
     }
 
@@ -61,4 +61,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "An internal server error occurred." }, { status: 500 });
   }
 }
-
