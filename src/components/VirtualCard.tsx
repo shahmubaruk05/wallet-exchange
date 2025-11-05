@@ -22,6 +22,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({ application }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   const cardHolderName = application.name || 'CARDHOLDER NAME';
+  const cardNumber = application.cardNumber;
   const expiryDate = application.expiryDate || 'MM/YY';
   const cvc = application.cvc || '•••';
 
@@ -44,7 +45,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({ application }) => {
             </div>
             <div className="space-y-2">
                 <div className="font-mono text-xl tracking-widest text-center">
-                    {showDetails ? formatCardNumber(application.cardNumber) : formatCardNumber()}
+                    {showDetails ? formatCardNumber(cardNumber) : formatCardNumber()}
                 </div>
                  <div className="flex justify-between text-xs font-mono uppercase">
                     <span>{showDetails ? cardHolderName : 'CARDHOLDER NAME'}</span>
