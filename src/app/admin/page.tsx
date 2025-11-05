@@ -32,8 +32,6 @@ import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO } from "date-fns";
 import {
   useFirestore,
-  useCollection,
-  useMemoFirebase,
   useUser,
   useAuth,
 } from "@/firebase";
@@ -51,6 +49,7 @@ import { Input } from "@/components/ui/input";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Loader2 } from "lucide-react";
+import AuthRedirect from "@/components/auth/AuthRedirect";
 
 const getStatusVariant = (status: Transaction["status"]) => {
   switch (status) {
@@ -288,38 +287,51 @@ const NotAuthorized = () => {
   );
 };
 
+const AdminDashboardPage = () => {
+    const firestore = useFirestore();
+    const { user } = useUser();
+    
+    const userDocRef = useMemo(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [firestore, user]);
+
+    const { data: userData, isLoading: isUserDocLoading } = useDoc(userDocRef);
+
+    if (isUserDocLoading) {
+        return (
+            <div className="flex justify-center items-center min-h-[60vh]">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+    
+    const isAdmin = (userData as any)?.role === "admin";
+
+    if (!isAdmin) {
+        return <NotAuthorized />;
+    }
+
+    return <AdminDashboard />;
+}
+
+
 const AdminPage = () => {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}`);
-  }, [firestore, user]);
-
-  const { data: userData, isLoading: isUserDocLoading } = useDoc(userDocRef);
-
-  if (isUserLoading || (user && isUserDocLoading)) {
+  if (isUserLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
-
-  if (!user) {
-    return <AdminLoginPage />;
-  }
-
-  const isAdmin = (userData as any)?.role === "admin";
-
-  if (!isAdmin) {
-    return <NotAuthorized />;
-  }
-
-  return <AdminDashboard />;
+  
+  return (
+     <AuthRedirect to="/admin" condition={(user) => !user}>
+      { user ? <AdminDashboardPage/> : <AdminLoginPage /> }
+    </AuthRedirect>
+  )
 };
 
 export default AdminPage;
-
-    
