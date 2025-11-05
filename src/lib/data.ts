@@ -38,6 +38,7 @@ export type Transaction = {
   receivingAccountId: string;
   updatedAt?: string; // ISO String for when status was last updated
   adminNote?: string;
+  adminProof?: string;
 };
 
 export type ExchangeRate = {

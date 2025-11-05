@@ -16,9 +16,13 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
-import { ReactNode, useState } from 'react';
-import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 type TransactionWithId = Transaction & { id: string };
 
@@ -29,8 +33,24 @@ interface TransactionDetailsDialogProps {
 
 export function TransactionDetailsDialog({ transaction: tx, children }: TransactionDetailsDialogProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [adminNote, setAdminNote] = useState(tx.adminNote || '');
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc(userDocRef);
+  const isAdmin = (userData as any)?.role === 'admin';
+
+  useEffect(() => {
+    if (isOpen) {
+      setAdminNote(tx.adminNote || '');
+    }
+  }, [isOpen, tx.adminNote]);
 
   const getStatusVariant = (status: Transaction['status']) => {
     switch (status) {
@@ -56,11 +76,12 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     
     updateDocumentNonBlocking(transactionRef, {
       status: newStatus,
+      adminNote: adminNote,
       updatedAt: serverTimestamp(),
     });
 
     toast({
-      title: "Status Updated",
+      title: "Update Successful",
       description: `Transaction status changed to ${newStatus}.`,
       className: "bg-accent text-accent-foreground",
     });
@@ -71,7 +92,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
 
   const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
     <div className="flex justify-between items-start">
-      <dt className="text-muted-foreground">{label}</dt>
+      <dt className="text-muted-foreground text-sm">{label}</dt>
       <dd className="text-right font-mono text-sm text-foreground break-all">{value}</dd>
     </div>
   );
@@ -86,7 +107,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
             Order ID: {tx.id}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
           <dl className="space-y-2">
             <DetailRow label="Date" value={format(parseISO(tx.transactionDate), 'PPp')} />
             <DetailRow 
@@ -94,7 +115,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
               value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} 
             />
              <DetailRow label="User ID" value={tx.userId} />
-            <div className="pt-2">
+            <div className="pt-2 border-t mt-2">
                 <DetailRow 
                 label="You Sent" 
                 value={
@@ -119,20 +140,55 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
               <DetailRow label="Gateway Trx ID" value={tx.transactionId} />
               <DetailRow label="To Account" value={tx.receivingAccountId} />
             </div>
+             {tx.adminNote && (
+                <div className="pt-2 border-t mt-2">
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Note from Admin</AlertTitle>
+                        <AlertDescription className="font-mono text-xs whitespace-pre-wrap break-words">
+                            {tx.adminNote}
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            )}
           </dl>
+
+          {isAdmin && (
+            <div className="pt-4 border-t space-y-2">
+                 <Label htmlFor="admin-note">Admin Note (visible to user)</Label>
+                 <Textarea 
+                    id="admin-note"
+                    placeholder="Add a note or proof link here..."
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                 />
+            </div>
+          )}
         </div>
-        <DialogFooter className="flex-wrap gap-2">
-          {(["Pending", "Processing", "Completed", "Paid", "Cancelled"] as TransactionStatus[]).map(status => (
-            <Button key={status} size="sm" variant="outline" onClick={() => handleStatusUpdate(status)} disabled={tx.status === status}>
-              Mark as {status}
-            </Button>
-          ))}
-           <DialogClose asChild>
-            <Button type="button" variant="secondary">
-              Close
-            </Button>
-          </DialogClose>
-        </DialogFooter>
+        
+        {isAdmin ? (
+          <DialogFooter className="flex-wrap gap-2">
+            {(["Pending", "Processing", "Completed", "Paid", "Cancelled"] as TransactionStatus[]).map(status => (
+              <Button key={status} size="sm" variant="outline" onClick={() => handleStatusUpdate(status)} disabled={tx.status === status}>
+                Mark as {status}
+              </Button>
+            ))}
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        ) : (
+            <DialogFooter>
+                 <DialogClose asChild>
+                    <Button type="button" variant="secondary">
+                    Close
+                    </Button>
+                </DialogClose>
+            </DialogFooter>
+        )}
+
       </DialogContent>
     </Dialog>
   );
