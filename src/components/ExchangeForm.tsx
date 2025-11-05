@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -31,8 +32,6 @@ import { collection } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 
 type Step = "form" | "confirm" | "status";
-
-const TRANSACTION_FEE_PERCENTAGE = 0.05; // 5%
 
 export default function ExchangeForm() {
   const [step, setStep] = useState<Step>("form");
@@ -96,9 +95,17 @@ export default function ExchangeForm() {
       }
 
       let fee = 0;
-      if (['paypal', 'payoneer', 'wise'].includes(sendMethod.id)) {
-        fee = amount * TRANSACTION_FEE_PERCENTAGE;
+      const feePercentages: { [key: string]: number } = {
+        bkash: 0.0185,    // 1.85%
+        nagad: 0.014,     // 1.4%
+        wise: 0.029,      // 2.9%
+        payoneer: 0.01,   // 1%
+      };
+
+      if (sendMethod.id in feePercentages) {
+        fee = amount * feePercentages[sendMethod.id];
       }
+      
       setTransactionFee(fee);
       
       const amountAfterFee = amount - fee;
@@ -465,3 +472,5 @@ export default function ExchangeForm() {
       return renderForm();
   }
 }
+
+    
