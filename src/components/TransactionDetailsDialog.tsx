@@ -215,3 +215,5 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
+
+    
