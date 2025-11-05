@@ -1,6 +1,5 @@
 
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { initializeApp, getApps, App } from "firebase-admin/app";
 
@@ -9,6 +8,8 @@ function getFirebaseAdminApp(): App {
   if (getApps().length > 0) {
     return getApps()[0] as App;
   }
+  // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
+  // for authentication, which is appropriate for a server environment.
   return initializeApp();
 }
 
@@ -17,16 +18,13 @@ export async function GET(req: Request) {
   try {
     const app = getFirebaseAdminApp();
     const db = getFirestore(app);
-    const auth = getAuth(app);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED", hasCard: false }, { status: 401 });
+    const { searchParams } = new URL(req.url);
+    const uid = searchParams.get('uid');
+
+    if (!uid) {
+       return NextResponse.json({ ok: false, error: "USER_ID_MISSING" }, { status: 400 });
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = await auth.verifyIdToken(token);
-    const uid = decoded.uid;
 
     const cardsSnap = await db.collection("card_applications")
       .where("userId", "==", uid)
@@ -54,7 +52,8 @@ export async function GET(req: Request) {
     const mercuryResponse = await fetch("https://api.mercury.com/api/v1/transactions?limit=20", {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${mercuryApiToken}`,
+        // As per instructions, do not add "Bearer "
+        "Authorization": mercuryApiToken,
         "Content-Type": "application/json",
       },
     });
@@ -92,13 +91,6 @@ export async function GET(req: Request) {
     });
   } catch (e: any) {
     console.error("Error in /api/mercury/transactions:", e);
-    if (e.code === 'auth/id-token-expired') {
-        return NextResponse.json({ ok: false, error: 'TOKEN_EXPIRED' }, { status: 401 });
-    }
-    // Don't expose internal Firebase Admin errors to the client
-    if (e.message?.includes("'aud' claim")) {
-       return NextResponse.json({ ok: false, error: 'TOKEN_AUDIENCE_MISMATCH' }, { status: 401 });
-    }
     return NextResponse.json({ ok: false, error: e.message || 'INTERNAL_SERVER_ERROR' }, { status: 500 });
   }
 }

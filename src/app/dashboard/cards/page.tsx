@@ -80,14 +80,11 @@ const CardTransactionList = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             if (!user) return;
-
+            setLoading(true);
+            setError(null);
             try {
-                const token = await user.getIdToken();
-                const response = await fetch("/api/mercury/transactions", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                // Pass UID as a query parameter
+                const response = await fetch(`/api/mercury/transactions?uid=${user.uid}`);
                 
                 const data = await response.json();
 
