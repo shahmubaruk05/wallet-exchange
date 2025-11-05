@@ -7,14 +7,19 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
+  DialogClose,
 } from '@/components/ui/dialog';
-import type { Transaction } from '@/lib/data';
+import type { Transaction, TransactionStatus } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
+import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
 
-// Make all fields from Transaction available, plus the Firestore document ID
 type TransactionWithId = Transaction & { id: string };
 
 interface TransactionDetailsDialogProps {
@@ -23,18 +28,46 @@ interface TransactionDetailsDialogProps {
 }
 
 export function TransactionDetailsDialog({ transaction: tx, children }: TransactionDetailsDialogProps) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+
   const getStatusVariant = (status: Transaction['status']) => {
     switch (status) {
-      case 'Completed':
-        return 'bg-accent/20 text-accent-foreground hover:bg-accent/30';
-      case 'Processing':
-        return 'default';
-      case 'Paid':
-        return 'secondary';
+      case "Completed":
+        return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
+      case "Processing":
+        return "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200";
+      case "Paid":
+         return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
+      case "Pending":
+         return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200";
+      case "Cancelled":
+          return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
       default:
-        return 'outline';
+        return "outline";
     }
   };
+
+  const handleStatusUpdate = (newStatus: TransactionStatus) => {
+    if (!firestore) return;
+
+    const transactionRef = doc(firestore, `users/${tx.userId}/transactions/${tx.id}`);
+    
+    updateDocumentNonBlocking(transactionRef, {
+      status: newStatus,
+      updatedAt: serverTimestamp(),
+    });
+
+    toast({
+      title: "Status Updated",
+      description: `Transaction status changed to ${newStatus}.`,
+      className: "bg-accent text-accent-foreground",
+    });
+
+    setIsOpen(false);
+  };
+
 
   const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
     <div className="flex justify-between items-start">
@@ -44,7 +77,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   );
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -60,6 +93,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
               label="Status" 
               value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} 
             />
+             <DetailRow label="User ID" value={tx.userId} />
             <div className="pt-2">
                 <DetailRow 
                 label="You Sent" 
@@ -87,6 +121,18 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
             </div>
           </dl>
         </div>
+        <DialogFooter className="flex-wrap gap-2">
+          {(["Pending", "Processing", "Completed", "Paid", "Cancelled"] as TransactionStatus[]).map(status => (
+            <Button key={status} size="sm" variant="outline" onClick={() => handleStatusUpdate(status)} disabled={tx.status === status}>
+              Mark as {status}
+            </Button>
+          ))}
+           <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -19,7 +19,7 @@ export let exchangeRates = {
   BDT_TO_USD_RATE: 127.0,
 };
 
-export type TransactionStatus = "Processing" | "Paid" | "Completed";
+export type TransactionStatus = "Processing" | "Paid" | "Completed" | "Pending" | "Cancelled";
 
 // This type should align with the Transaction entity in backend.json
 export type Transaction = {
@@ -36,6 +36,8 @@ export type Transaction = {
   sendingAccountId: string;
   transactionId: string;
   receivingAccountId: string;
+  updatedAt?: string; // ISO String for when status was last updated
+  adminNote?: string;
 };
 
 export type ExchangeRate = {

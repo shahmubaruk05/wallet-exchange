@@ -41,6 +41,7 @@ import {
   orderBy,
   getDocs,
   doc,
+  collectionGroup,
 } from "firebase/firestore";
 import type { Transaction } from "@/lib/data";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
@@ -54,11 +55,15 @@ import AuthRedirect from "@/components/auth/AuthRedirect";
 const getStatusVariant = (status: Transaction["status"]) => {
   switch (status) {
     case "Completed":
-      return "bg-accent/20 text-accent-foreground hover:bg-accent/30";
+      return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
     case "Processing":
-      return "default";
+      return "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200";
     case "Paid":
-      return "secondary";
+       return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
+    case "Pending":
+       return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200";
+    case "Cancelled":
+        return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
     default:
       return "outline";
   }
@@ -150,28 +155,49 @@ const AdminDashboard = () => {
       if (!firestore) return;
       setIsLoading(true);
       try {
-        const usersSnapshot = await getDocs(collection(firestore, "users"));
-        const transactionsPromises = usersSnapshot.docs.map(async (userDoc) => {
-          const transactionsQuery = query(
-            collection(firestore, `users/${userDoc.id}/transactions`),
-            orderBy("transactionDate", "desc")
-          );
-          const transactionsSnapshot = await getDocs(transactionsQuery);
-          return transactionsSnapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
-          );
-        });
-
-        const transactionsByUsers = await Promise.all(transactionsPromises);
-        const flattenedTransactions = transactionsByUsers.flat();
-        
-        flattenedTransactions.sort((a, b) => 
-            parseISO(b.transactionDate).getTime() - parseISO(a.transactionDate).getTime()
+        // Use collectionGroup query if rules allow it and indexing is set up.
+        const transactionsQuery = query(
+          collectionGroup(firestore, "transactions"),
+          orderBy("transactionDate", "desc")
         );
 
-        setAllTransactions(flattenedTransactions);
+        const transactionsSnapshot = await getDocs(transactionsQuery);
+
+        const transactions = transactionsSnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
+        );
+
+        setAllTransactions(transactions);
+
       } catch (error) {
         console.error("Error fetching all transactions:", error);
+        // Fallback for when collectionGroup query fails (e.g., missing index, permissions)
+        console.log("Falling back to fetching user by user.");
+        try {
+            const usersSnapshot = await getDocs(collection(firestore, "users"));
+            const transactionsPromises = usersSnapshot.docs.map(async (userDoc) => {
+              const transactionsQuery = query(
+                collection(firestore, `users/${userDoc.id}/transactions`),
+                orderBy("transactionDate", "desc")
+              );
+              const transactionsSnapshot = await getDocs(transactionsQuery);
+              return transactionsSnapshot.docs.map(
+                (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
+              );
+            });
+
+            const transactionsByUsers = await Promise.all(transactionsPromises);
+            const flattenedTransactions = transactionsByUsers.flat();
+
+            flattenedTransactions.sort((a, b) =>
+                parseISO(b.transactionDate).getTime() - parseISO(a.transactionDate).getTime()
+            );
+
+            setAllTransactions(flattenedTransactions);
+        } catch (fallbackError) {
+             console.error("Error fetching transactions with fallback method:", fallbackError);
+        }
+
       } finally {
         setIsLoading(false);
       }
