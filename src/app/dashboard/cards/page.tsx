@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Clock, XCircle, Info, DollarSign } from "lucide-react";
+import { Loader2, Clock, XCircle, Info, DollarSign, History } from "lucide-react";
 import type { CardApplication } from "@/lib/data";
 import VirtualCard from "@/components/VirtualCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -103,10 +103,15 @@ const UserCardPage = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4 text-center">Your Virtual Card</h2>
               <VirtualCard application={application} />
-               <div className="mt-6 flex justify-center">
+               <div className="mt-6 flex flex-col sm:flex-row justify-center gap-2">
                  <Button asChild>
                     <Link href="/dashboard/cards/top-up">
                         <DollarSign className="mr-2 h-4 w-4" /> Top Up Card
+                    </Link>
+                 </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard/cards/history">
+                        <History className="mr-2 h-4 w-4" /> View History
                     </Link>
                  </Button>
               </div>
@@ -255,5 +260,3 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
-
-    
