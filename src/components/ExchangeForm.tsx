@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, CheckCircle, RefreshCw, Loader2, Info } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle, RefreshCw, Loader2, Info, Copy, Check } from "lucide-react";
 import {
   paymentMethods,
   type PaymentMethod,
@@ -43,6 +43,7 @@ export default function ExchangeForm() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [transactionFee, setTransactionFee] = useState<number>(0);
   const [rateText, setRateText] = useState<string>("");
+  const [copied, setCopied] = useState(false);
 
   // New state for confirmation form
   const [sendingAccountId, setSendingAccountId] = useState('');
@@ -210,6 +211,13 @@ export default function ExchangeForm() {
     setReceivingAccountId('');
   }
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast({ title: 'Copied to clipboard!' });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const renderForm = () => (
     <Card className="w-full shadow-lg">
       <CardHeader>
@@ -356,8 +364,17 @@ export default function ExchangeForm() {
                     <p>Method: <strong className="text-primary">{sendMethod.name}</strong></p>
                     <p>Instruction: Please send to the following address/number:</p>
                   </div>
-                  <div className="mt-2 p-3 bg-primary/10 rounded-md text-center font-mono text-primary-foreground tracking-wider">
-                      {instruction}
+                   <div className="mt-2 p-3 bg-primary/10 rounded-md flex items-center justify-between">
+                      <span className="font-mono text-primary-foreground tracking-wider">{instruction}</span>
+                       <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopy(instruction)}
+                        className="h-8 w-8"
+                      >
+                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
                   </div>
               </div>
           </div>
