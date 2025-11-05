@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -17,6 +18,7 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Transaction } from "@/lib/data";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
+import { DollarSign } from 'lucide-react';
 
 const getStatusVariant = (status: Transaction['status']) => {
   switch (status) {
@@ -86,13 +88,19 @@ const UserTransactionsPage = () => {
                     </TableCell>
                     <TableCell>
                        <div className="flex items-center gap-2">
-                         <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
+                        {tx.transactionType === 'CARD_TOP_UP' ? (
+                          <DollarSign className="h-5 w-5 text-primary" />
+                        ) : (
+                          <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
+                        )}
                          <span>{tx.withdrawalMethod}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="font-mono">
-                        {tx.amount.toFixed(2)} {tx.currency} &rarr; {tx.receivedAmount.toFixed(2)} BDT
+                        {tx.amount.toFixed(2)} {tx.currency} &rarr;{' '}
+                        {tx.receivedAmount.toFixed(2)}{' '}
+                        {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : 'BDT'}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
@@ -110,3 +118,5 @@ const UserTransactionsPage = () => {
 };
 
 export default UserTransactionsPage;
+
+    

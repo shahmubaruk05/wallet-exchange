@@ -196,12 +196,13 @@ export default function ExchangeForm() {
         currency: sendMethod.currency,
         exchangeRateId: "dummy-rate-id", // Replace with actual rate ID from Firestore
         receivedAmount: parseFloat(receiveAmount),
-        status: "Processing",
+        status: "Processing" as const,
         transactionDate: new Date().toISOString(),
         sendingAccountId,
         transactionId,
         receivingAccountId,
         transactionFee,
+        transactionType: 'EXCHANGE' as const,
     };
     
     const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
@@ -475,3 +476,4 @@ export default function ExchangeForm() {
   }
 }
 
+    

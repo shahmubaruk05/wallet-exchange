@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -52,7 +53,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, DollarSign } from "lucide-react";
 import AuthRedirect from "@/components/auth/AuthRedirect";
 
 const getStatusVariant = (status: Transaction["status"]) => {
@@ -174,28 +175,7 @@ const AdminDashboard = () => {
         setAllTransactions(transactions);
       } catch (error) {
         console.error("Error fetching all transactions:", error);
-        console.log("Falling back to fetching user by user.");
-        try {
-          const usersSnapshot = await getDocs(collection(firestore, "users"));
-          const transactionsPromises = usersSnapshot.docs.map(async (userDoc) => {
-            const transactionsQuery = query(
-              collection(firestore, `users/${userDoc.id}/transactions`),
-              orderBy("transactionDate", "desc")
-            );
-            const transactionsSnapshot = await getDocs(transactionsQuery);
-            return transactionsSnapshot.docs.map(
-              (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
-            );
-          });
-          const transactionsByUsers = await Promise.all(transactionsPromises);
-          const flattenedTransactions = transactionsByUsers.flat();
-          flattenedTransactions.sort((a, b) =>
-            parseISO(b.transactionDate).getTime() - parseISO(a.transactionDate).getTime()
-          );
-          setAllTransactions(flattenedTransactions);
-        } catch (fallbackError) {
-          console.error("Error fetching transactions with fallback method:", fallbackError);
-        }
+        // Fallback might not be needed if collection group queries are allowed for admin
       } finally {
         setIsLoading(false);
       }
@@ -239,7 +219,7 @@ const AdminDashboard = () => {
       <h1 className="text-3xl font-bold">Transaction History</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle>All Transactions</CardTitle>
           <div className="mt-4 flex flex-col sm:flex-row gap-4">
              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -322,17 +302,22 @@ const AdminDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <PaymentIcon
-                            id={tx.withdrawalMethod.toLowerCase()}
-                            className="h-5 w-5"
-                          />
+                          {tx.transactionType === 'CARD_TOP_UP' ? (
+                            <DollarSign className="h-5 w-5 text-primary" />
+                          ) : (
+                            <PaymentIcon
+                              id={tx.withdrawalMethod.toLowerCase()}
+                              className="h-5 w-5"
+                            />
+                          )}
                           <span>{tx.withdrawalMethod}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="font-mono">
                           {tx.amount.toFixed(2)} {tx.currency} &rarr;{" "}
-                          {tx.receivedAmount.toFixed(2)} BDT
+                          {tx.receivedAmount.toFixed(2)}{" "}
+                          {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : 'BDT'}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
@@ -374,7 +359,7 @@ const AdminDashboardPage = () => {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const userDocRef = useMemo(() => {
+  const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `users/${user.uid}`);
   }, [firestore, user]);

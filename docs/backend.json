@@ -75,7 +75,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction made by a user.",
+      "description": "Represents a transaction made by a user. Can be an exchange or a card top-up.",
       "properties": {
         "id": {
           "type": "string",
@@ -91,7 +91,7 @@
         },
         "withdrawalMethod": {
           "type": "string",
-          "description": "The withdrawal method chosen for the transaction (e.g., Bkash, Nagad, PayPal)."
+          "description": "The withdrawal method chosen for the transaction (e.g., Bkash, Nagad, PayPal, or 'Virtual Card Top Up')."
         },
         "amount": {
           "type": "number",
@@ -131,8 +131,22 @@
           "description": "The account identifier (e.g., phone number) where the user will receive funds."
         },
         "transactionFee": {
-            "type": "number",
-            "description": "The fee charged for the transaction."
+          "type": "number",
+          "description": "The fee charged for the transaction."
+        },
+        "transactionType": {
+          "type": "string",
+          "description": "The type of transaction.",
+          "enum": ["EXCHANGE", "CARD_TOP_UP"]
+        },
+        "topUpDetails": {
+          "type": "object",
+          "description": "Details specific to a card top-up transaction.",
+          "properties": {
+            "sentAmount": { "type": "number" },
+            "sentCurrency": { "type": "string" },
+            "topUpAmountUSD": { "type": "number" }
+          }
         }
       },
       "required": [
@@ -149,7 +163,8 @@
         "sendingAccountId",
         "transactionId",
         "receivingAccountId",
-        "transactionFee"
+        "transactionFee",
+        "transactionType"
       ]
     },
     "CardApplication": {
@@ -215,40 +230,6 @@
         "status",
         "appliedAt"
       ]
-    },
-     "CardTopUp": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CardTopUp",
-      "type": "object",
-      "description": "Represents a card top-up transaction.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "paymentMethod": { "type": "string" },
-        "sentAmount": { "type": "number" },
-        "sentCurrency": { "type": "string" },
-        "topUpAmountUSD": { "type": "number" },
-        "status": {
-          "type": "string",
-          "enum": ["Pending", "Completed", "Cancelled"]
-        },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "sendingAccountId": { "type": "string" },
-        "transactionId": { "type": "string" },
-        "adminNote": { "type": "string" }
-      },
-      "required": [
-        "id",
-        "userId",
-        "paymentMethod",
-        "sentAmount",
-        "sentCurrency",
-        "topUpAmountUSD",
-        "status",
-        "createdAt",
-        "sendingAccountId",
-        "transactionId"
-      ]
     }
   },
   "auth": {
@@ -298,7 +279,7 @@
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores transaction data for each user. It supports path-based ownership ensuring only the user can read/write their own transaction data.",
+          "description": "Stores all transaction data for each user, including exchanges and card top-ups. It supports path-based ownership ensuring only the user can read/write their own transaction data.",
           "params": [
             {
               "name": "userId",
@@ -326,25 +307,9 @@
             }
           ]
         }
-      },
-      {
-        "path": "/card_top_ups/{topUpId}",
-        "definition": {
-          "entityName": "CardTopUp",
-          "schema": {
-            "$ref": "#/backend/entities/CardTopUp"
-          },
-          "description": "Stores card top-up requests from users.",
-          "params": [
-            {
-              "name": "topUpId",
-              "description": "The unique identifier for the top-up transaction."
-            }
-          ]
-        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. The exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles. Path-based ownership ensures that only the user (or an admin with appropriate privileges) can access their own profile data. This eliminates the need for complex security rules involving `get()` calls, thereby supporting authorization independence.\n\n2.  **Exchange Rates Collection (`/exchange_rates/{exchangeRateId}`):** Stores the exchange rates. This collection is segregated to simplify security rules and enforce that all documents in this collection share the same access needs. This ensures that rules are not filters and supports secure `list` operations.\n\n3.  **Transactions Subcollection (`/users/{userId}/transactions/{transactionId}`):** Stores transactions for each user. By nesting transactions within user documents, we maintain path-based ownership, ensuring that only the user or an admin can access their transactions. This provides authorization independence and simplifies security rules.\n\n4. **Card Applications Collection (`/card_applications/{applicationId}`):** Stores card applications from users. The document ID is the user's UID to enforce a one-application-per-user rule. Users can read/write their own application, while admins can read all and write/update any application to approve/reject and issue card details. This maintains path-based ownership for users and gives admins global control.\n\n5. **Card Top-Ups Collection (`/card_top_ups/{topUpId}`):** Stores card top-up requests. This is a root collection to allow admins to easily query and manage all top-up requests globally, separate from individual user data."
+    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place."
   }
 }
 

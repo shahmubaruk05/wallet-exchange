@@ -21,6 +21,8 @@ export let exchangeRates = {
 };
 
 export type TransactionStatus = "Processing" | "Paid" | "Completed" | "Pending" | "Cancelled";
+export type TransactionType = "EXCHANGE" | "CARD_TOP_UP";
+
 
 // This type should align with the Transaction entity in backend.json
 export type Transaction = {
@@ -40,6 +42,12 @@ export type Transaction = {
   transactionFee: number;
   updatedAt?: string; // ISO String for when status was last updated
   adminNote?: string;
+  transactionType: TransactionType;
+  topUpDetails?: {
+    sentAmount: number;
+    sentCurrency: string;
+    topUpAmountUSD: number;
+  }
 };
 
 export type ExchangeRate = {
@@ -87,4 +95,3 @@ export type CardTopUp = {
 };
 
     
-

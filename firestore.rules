@@ -50,14 +50,6 @@ service cloud.firestore {
       // Admins can read and update any application.
       allow read, update, list: if isAdmin();
     }
-
-    // Secure card top-ups.
-    match /card_top_ups/{topUpId} {
-      // A user can create a top-up request for themselves.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // Only admins can read, update, or list top-up requests.
-      allow read, update, list, delete: if isAdmin();
-    }
   }
 }
 

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Table,
   TableHeader,
@@ -18,16 +18,15 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collection, query, orderBy, doc } from "firebase/firestore";
-import type { CardTopUp, CardTopUpStatus } from "@/lib/data";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collectionGroup, query, where, orderBy, getDocs } from "firebase/firestore";
+import type { Transaction, TransactionStatus } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import PaymentIcon from "@/components/PaymentIcons";
+import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
 
-const getStatusVariant = (status: CardTopUp["status"]) => {
+const getStatusVariant = (status: Transaction["status"]) => {
   switch (status) {
     case "Completed":
       return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
@@ -42,27 +41,34 @@ const getStatusVariant = (status: CardTopUp["status"]) => {
 
 const AdminTopUpPage = () => {
   const firestore = useFirestore();
-  const { toast } = useToast();
-  
-  const topUpsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, "card_top_ups"),
-      orderBy("createdAt", "desc")
-    );
+  const [topUps, setTopUps] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopUps = async () => {
+      if (!firestore) return;
+      setIsLoading(true);
+      
+      const topUpsQuery = query(
+        collectionGroup(firestore, "transactions"),
+        where("transactionType", "==", "CARD_TOP_UP"),
+        orderBy("transactionDate", "desc")
+      );
+
+      try {
+        const querySnapshot = await getDocs(topUpsQuery);
+        const fetchedTopUps = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+        setTopUps(fetchedTopUps);
+      } catch (error) {
+        console.error("Error fetching card top-ups:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTopUps();
   }, [firestore]);
 
-  const { data: topUps, isLoading } = useCollection<CardTopUp>(topUpsQuery);
-
-  const handleStatusUpdate = (topUpId: string, newStatus: CardTopUpStatus) => {
-    if (!firestore) return;
-    const topUpRef = doc(firestore, 'card_top_ups', topUpId);
-    updateDocumentNonBlocking(topUpRef, { status: newStatus });
-    toast({
-        title: "Status Updated",
-        description: `Top up status changed to ${newStatus}.`,
-    });
-  }
 
   return (
     <div className="space-y-6">
@@ -83,13 +89,12 @@ const AdminTopUpPage = () => {
                 <TableHead>Amount Sent</TableHead>
                 <TableHead>Top Up (USD)</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={5} className="text-center">
                     <div className="flex justify-center items-center p-4">
                       <Loader2 className="h-6 w-6 animate-spin" />
                       <span className="ml-2">Loading requests...</span>
@@ -99,45 +104,35 @@ const AdminTopUpPage = () => {
               )}
               {!isLoading && (!topUps || topUps.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={5} className="text-center">
                     No top up requests found.
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading &&
                 topUps?.map((topUp) => (
-                  <TableRow key={topUp.id}>
-                    <TableCell>
-                      {format(parseISO(topUp.createdAt), "PPp")}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{topUp.userId}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <PaymentIcon id={topUp.paymentMethod.toLowerCase()} className="h-5 w-5"/>
-                        <span>{topUp.sentAmount.toFixed(2)} {topUp.sentCurrency}</span>
-                      </div>
-                    </TableCell>
-                     <TableCell className="font-semibold text-green-600">
-                      ${topUp.topUpAmountUSD.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge className={getStatusVariant(topUp.status)}>
-                        {topUp.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                        {topUp.status !== 'Completed' && (
-                             <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(topUp.id, 'Completed')}>
-                                Complete
-                            </Button>
-                        )}
-                        {topUp.status !== 'Cancelled' && (
-                             <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(topUp.id, 'Cancelled')}>
-                                Cancel
-                            </Button>
-                        )}
-                    </TableCell>
-                  </TableRow>
+                  <TransactionDetailsDialog key={topUp.id} transaction={topUp}>
+                    <TableRow key={topUp.id} className="cursor-pointer">
+                      <TableCell>
+                        {format(parseISO(topUp.transactionDate), "PPp")}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{topUp.userId}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <PaymentIcon id={topUp.paymentMethod.toLowerCase()} className="h-5 w-5"/>
+                          <span>{topUp.amount.toFixed(2)} {topUp.currency}</span>
+                        </div>
+                      </TableCell>
+                       <TableCell className="font-semibold text-green-600">
+                        ${topUp.receivedAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge className={getStatusVariant(topUp.status)}>
+                          {topUp.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  </TransactionDetailsDialog>
                 ))}
             </TableBody>
           </Table>

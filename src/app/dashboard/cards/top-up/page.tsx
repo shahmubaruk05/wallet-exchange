@@ -145,16 +145,6 @@ export default function CardTopUpPage() {
   }, [sendAmount, receiveAmount, lastEdited, sendMethod, exchangeRates]);
 
 
-  const handleSendAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSendAmount(e.target.value);
-    setLastEdited('send');
-  };
-
-  const handleReceiveAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setReceiveAmount(e.target.value);
-    setLastEdited('receive');
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (parseFloat(sendAmount) <= 0 || isNaN(parseFloat(sendAmount))) {
@@ -197,22 +187,31 @@ export default function CardTopUpPage() {
       return;
     }
 
-    const topUpData = {
+    const transactionData = {
         userId: user.uid,
         paymentMethod: sendMethod.name,
-        sentAmount: parseFloat(sendAmount),
-        sentCurrency: sendMethod.currency,
-        topUpAmountUSD: parseFloat(receiveAmount),
+        withdrawalMethod: "Virtual Card Top Up",
+        amount: parseFloat(sendAmount),
+        currency: sendMethod.currency,
+        receivedAmount: parseFloat(receiveAmount),
         status: "Pending" as const,
-        createdAt: new Date().toISOString(),
+        transactionDate: new Date().toISOString(),
         sendingAccountId,
         transactionId,
+        receivingAccountId: "N/A - Card Top Up",
         transactionFee,
         adminNote: "",
+        transactionType: 'CARD_TOP_UP' as const,
+        topUpDetails: {
+          sentAmount: parseFloat(sendAmount),
+          sentCurrency: sendMethod.currency,
+          topUpAmountUSD: parseFloat(receiveAmount),
+        },
+        exchangeRateId: "dummy-rate-id",
     };
     
-    const topUpsColRef = collection(firestore, `card_top_ups`);
-    addDocumentNonBlocking(topUpsColRef, topUpData);
+    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+    addDocumentNonBlocking(transactionsColRef, transactionData);
 
     setStep("status");
   };
