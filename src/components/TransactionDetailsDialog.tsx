@@ -23,7 +23,7 @@ import { doc, serverTimestamp } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, DollarSign } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -148,13 +148,17 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                   />
                 )}
                  <DetailRow 
-                label="You Received" 
-                value={
-                    <div className="flex items-center gap-2 justify-end">
-                        <span>{tx.receivedAmount.toFixed(2)} BDT</span>
-                         <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
-                    </div>
-                } 
+                    label="You Received" 
+                    value={
+                        <div className="flex items-center gap-2 justify-end">
+                            <span>{tx.receivedAmount.toFixed(2)} {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : 'BDT'}</span>
+                            {tx.transactionType === 'CARD_TOP_UP' ? (
+                              <DollarSign className="h-5 w-5 text-primary" />
+                            ) : (
+                              <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
+                            )}
+                        </div>
+                    } 
                 />
             </div>
             <div className="pt-2 border-t mt-2">
@@ -215,5 +219,3 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
-
-    
