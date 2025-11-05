@@ -111,7 +111,7 @@ const UserCardPage = () => {
                  </Button>
                   <Button asChild variant="outline">
                     <Link href="/dashboard/cards/history">
-                        <History className="mr-2 h-4 w-4" /> View History
+                        <History className="mr-2 h-4 w-4" /> View Top Up History
                     </Link>
                  </Button>
               </div>
