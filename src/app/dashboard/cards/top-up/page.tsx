@@ -71,6 +71,16 @@ export default function CardTopUpPage() {
     [sendMethodId]
   );
   
+  const handleSendAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSendAmount(e.target.value);
+    setLastEdited('send');
+  };
+
+  const handleReceiveAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReceiveAmount(e.target.value);
+    setLastEdited('receive');
+  };
+
   useEffect(() => {
     const feePercentages: { [key: string]: number } = {
       bkash: 0.0185,
