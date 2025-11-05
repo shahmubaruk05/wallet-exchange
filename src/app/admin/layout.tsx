@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard, DollarSign } from "lucide-react";
+import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard, DollarSign, Users } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -33,6 +33,14 @@ export default function AdminLayout({
                 <Link href="/admin">
                   <History />
                   <span>Transactions</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Users">
+                <Link href="/admin/users">
+                  <Users />
+                  <span>Users</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
