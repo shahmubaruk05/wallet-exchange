@@ -112,7 +112,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
         const fetchTransactions = async () => {
             if (!application.mercuryCardLast4) {
                 setTransactions([]);
-                setSource("mercury");
+                setSource("mercury"); // No card, so no transactions to fetch
                 setLoading(false);
                 return;
             };
@@ -120,38 +120,17 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
             setLoading(true);
             
             try {
-                 const token = process.env.NEXT_PUBLIC_MERCURY_API_TOKEN;
-                 if (!token) {
-                    throw new Error("Mercury API token is not configured.");
-                 }
+                const apiUrl = new URL('/api/mercury/transactions', window.location.origin);
+                apiUrl.searchParams.append('cardLast4', application.mercuryCardLast4);
 
-                const response = await fetch("https://api.mercury.com/api/v1/transactions?limit=100", {
-                    method: 'GET',
-                    headers: {
-                        Authorization: token,
-                        "Content-Type": "application/json",
-                    },
-                    cache: "no-store",
-                });
-                
+                const response = await fetch(apiUrl.toString(), { cache: "no-store" });
                 const data = await response.json();
-
-                if (response.ok && data.transactions) {
-                    const userTransactions = data.transactions.filter((t: any) => {
-                       return t.cardLast4 === application.mercuryCardLast4 || t.card?.last4 === application.mercuryCardLast4;
-                    });
-                    const formatted = userTransactions.map((t: any) => ({
-                      id: t.id ?? "",
-                      date: t.postedAt ?? t.createdAt,
-                      merchant: t.merchant?.name ?? t.counterpartyName ?? "Transaction",
-                      amount: t.amount ?? 0,
-                      currency: t.currency ?? "USD",
-                      status: t.status ?? "posted",
-                    }));
-                    setTransactions(formatted);
-                    setSource("mercury");
+                
+                if (data && data.ok === true && Array.isArray(data.transactions)) {
+                    setTransactions(data.transactions);
+                    setSource(data.from === "mercury" ? "mercury" : "fallback");
                 } else {
-                    console.error("API did not return ok=true, falling back to demo data.", data?.error || data?.body || response.statusText);
+                    console.error("API did not return ok=true, falling back to demo data.", data?.error);
                     setTransactions(getFallbackTransactions());
                     setSource("fallback");
                 }
@@ -177,7 +156,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
         )
       }
 
-      if (transactions.length === 0) {
+      if (transactions.length === 0 && source !== 'fallback') {
         return <p className="mt-8 text-center text-muted-foreground">No transactions found for this card.</p>;
       }
 
@@ -415,5 +394,3 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
-
-    
