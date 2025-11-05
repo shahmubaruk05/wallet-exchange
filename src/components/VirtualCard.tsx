@@ -2,10 +2,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { CardApplication } from '@/lib/data';
 
 interface VirtualCardProps {
@@ -45,7 +44,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({ application }) => {
             </div>
             <div className="space-y-2">
                 <div className="font-mono text-xl tracking-widest text-center">
-                    {showDetails ? formatCardNumber(cardNumber) : formatCardNumber()}
+                    {showDetails ? formatCardNumber(cardNumber) : '•••• •••• •••• ••••'}
                 </div>
                  <div className="flex justify-between text-xs font-mono uppercase">
                     <span>{showDetails ? cardHolderName : 'CARDHOLDER NAME'}</span>
