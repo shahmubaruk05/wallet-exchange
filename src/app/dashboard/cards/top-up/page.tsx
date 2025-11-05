@@ -30,11 +30,13 @@ import type { ExchangeRate } from "@/lib/data";
 import Link from "next/link";
 
 type Step = "form" | "confirm" | "status";
+type LastEdited = "send" | "receive";
 
 export default function CardTopUpPage() {
   const [step, setStep] = useState<Step>("form");
   const [sendAmount, setSendAmount] = useState<string>("1000");
   const [receiveAmount, setReceiveAmount] = useState<string>("");
+  const [lastEdited, setLastEdited] = useState<LastEdited>("send");
   const [sendMethodId, setSendMethodId] = useState<string>("bkash");
   const [isCalculating, setIsCalculating] = useState(false);
   const [rateText, setRateText] = useState<string>("");
@@ -70,56 +72,88 @@ export default function CardTopUpPage() {
   );
   
   useEffect(() => {
-    const calculateExchange = () => {
+    const feePercentages: { [key: string]: number } = {
+      bkash: 0.0185,
+      nagad: 0.014,
+      wise: 0.029,
+      payoneer: 0.01,
+      paypal: 0.05,
+    };
+    const feePercentage = feePercentages[sendMethod.id] || 0;
+
+    const calculate = () => {
       setIsCalculating(true);
-      const amount = parseFloat(sendAmount);
-      if (isNaN(amount) || amount <= 0) {
-        setReceiveAmount("");
-        setTransactionFee(0);
-        setRateText("");
-        setIsCalculating(false);
-        return;
-      }
       
-      let fee = 0;
-      const feePercentages: { [key: string]: number } = {
-        bkash: 0.0185,
-        nagad: 0.014,
-        wise: 0.029,
-        payoneer: 0.01,
-        paypal: 0.05,
-      };
-
-      if (sendMethod.id in feePercentages) {
-        fee = amount * feePercentages[sendMethod.id];
-      }
-      
-      setTransactionFee(fee);
-      
-      const amountAfterFee = amount - fee;
-
-      let result = 0;
       let rateString = "";
       if (sendMethod.currency === "BDT") {
-        result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
-        rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
+          rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
       } else if (sendMethod.currency === "USD") {
-        result = amountAfterFee; // 1:1 for USD to USD after fee
-        rateString = `1 USD = 1 USD`;
-      } else {
-        result = amountAfterFee; // Fallback for other currencies
-        rateString = `1 ${sendMethod.currency} = 1 ${sendMethod.currency}`;
+          rateString = `1 USD = 1 USD`;
       }
 
-      setTimeout(() => {
-        setReceiveAmount(result.toFixed(2));
-        setRateText(rateString);
-        setIsCalculating(false);
-      }, 300);
+      if (lastEdited === 'send') {
+        const amount = parseFloat(sendAmount);
+        if (isNaN(amount) || amount <= 0) {
+          setReceiveAmount("");
+          setTransactionFee(0);
+          setRateText("");
+          setIsCalculating(false);
+          return;
+        }
+        
+        const fee = amount * feePercentage;
+        setTransactionFee(fee);
+        const amountAfterFee = amount - fee;
+
+        let result = 0;
+        if (sendMethod.currency === "BDT") {
+          result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
+        } else { // USD or other
+          result = amountAfterFee;
+        }
+        setReceiveAmount(result > 0 ? result.toFixed(2) : "");
+
+      } else { // lastEdited === 'receive'
+        const amount = parseFloat(receiveAmount);
+         if (isNaN(amount) || amount <= 0) {
+          setSendAmount("");
+          setTransactionFee(0);
+          setRateText("");
+          setIsCalculating(false);
+          return;
+        }
+
+        let amountBeforeFee = 0;
+        if (sendMethod.currency === "BDT") {
+            amountBeforeFee = amount * exchangeRates.BDT_TO_USD_RATE;
+        } else { // USD or other
+            amountBeforeFee = amount;
+        }
+
+        const originalAmount = amountBeforeFee / (1 - feePercentage);
+        const fee = originalAmount * feePercentage;
+        setTransactionFee(fee);
+        setSendAmount(originalAmount > 0 ? originalAmount.toFixed(2) : "");
+      }
+      
+      setRateText(rateString);
+      setIsCalculating(false);
     };
 
-    calculateExchange();
-  }, [sendAmount, sendMethod, exchangeRates]);
+    const debounce = setTimeout(calculate, 300);
+    return () => clearTimeout(debounce);
+  }, [sendAmount, receiveAmount, lastEdited, sendMethod, exchangeRates]);
+
+
+  const handleSendAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSendAmount(e.target.value);
+    setLastEdited('send');
+  };
+
+  const handleReceiveAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReceiveAmount(e.target.value);
+    setLastEdited('receive');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +220,8 @@ export default function CardTopUpPage() {
   const startNewTransaction = () => {
     setStep('form');
     setSendAmount('1000');
+    setReceiveAmount('');
+    setLastEdited('send');
     setSendMethodId('bkash');
     setSendingAccountId('');
     setTransactionId('');
@@ -222,7 +258,10 @@ export default function CardTopUpPage() {
                 <Label htmlFor="send-method">You Send</Label>
                 <Select
                     value={sendMethodId}
-                    onValueChange={(value) => setSendMethodId(value)}
+                    onValueChange={(value) => {
+                        setSendMethodId(value);
+                        setLastEdited('receive'); // Recalculate based on receive amount
+                    }}
                 >
                     <SelectTrigger id="send-method" className="h-12">
                     <SelectValue>
@@ -249,7 +288,7 @@ export default function CardTopUpPage() {
                     id="send-amount"
                     type="number"
                     value={sendAmount}
-                    onChange={(e) => setSendAmount(e.target.value)}
+                    onChange={handleSendAmountChange}
                     className="h-12 text-lg pr-16"
                     placeholder="0.00"
                     step="0.01"
@@ -257,6 +296,7 @@ export default function CardTopUpPage() {
                 <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground font-semibold">
                     {sendMethod.currency}
                 </span>
+                 {isCalculating && lastEdited === 'receive' && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
                 </div>
             </div>
 
@@ -295,22 +335,24 @@ export default function CardTopUpPage() {
                 <div className="relative">
                 <Input
                     id="receive-amount"
-                    type="text"
+                    type="number"
                     value={receiveAmount}
-                    readOnly
-                    className="h-12 text-lg bg-muted pr-16"
+                    onChange={handleReceiveAmountChange}
+                    className="h-12 text-lg pr-16"
                     placeholder="0.00"
+                    step="0.01"
                 />
                 <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground font-semibold">
                     USD
                 </span>
-                {isCalculating && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
+                {isCalculating && lastEdited === 'send' && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
                 </div>
             </div>
             </CardContent>
             <CardFooter>
-            <Button type="submit" className="w-full" size="lg">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
+            <Button type="submit" className="w-full" size="lg" disabled={isCalculating}>
+                {isCalculating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Continue"}
+                {!isCalculating && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
             </CardFooter>
         </form>
@@ -454,3 +496,5 @@ export default function CardTopUpPage() {
       return renderForm();
   }
 }
+
+    
