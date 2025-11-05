@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -35,6 +36,9 @@ const nextConfig: NextConfig = {
       'https://6000-firebase-studio-1762288315383.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev',
     ],
   },
+  env: {
+    NEXT_PUBLIC_MERCURY_API_TOKEN: process.env.NEXT_PUBLIC_MERCURY_API_TOKEN,
+  }
 };
 
 export default nextConfig;

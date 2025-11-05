@@ -111,23 +111,47 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
     useEffect(() => {
         const fetchTransactions = async () => {
             if (!application.mercuryCardLast4) {
-                setLoading(false);
                 setTransactions([]);
-                setSource("mercury"); // No card, so no transactions to fetch
+                setSource("mercury");
+                setLoading(false);
                 return;
             };
             
             setLoading(true);
             
             try {
-                const response = await fetch(`/api/mercury/transactions?cardLast4=${application.mercuryCardLast4}`, { cache: "no-store" });
+                 const token = process.env.NEXT_PUBLIC_MERCURY_API_TOKEN;
+                 if (!token) {
+                    throw new Error("Mercury API token is not configured.");
+                 }
+
+                const response = await fetch("https://api.mercury.com/api/v1/transactions?limit=100", {
+                    method: 'GET',
+                    headers: {
+                        Authorization: token,
+                        "Content-Type": "application/json",
+                    },
+                    cache: "no-store",
+                });
+                
                 const data = await response.json();
 
-                if (data && data.ok === true && Array.isArray(data.transactions)) {
-                    setTransactions(data.transactions);
+                if (response.ok && data.transactions) {
+                    const userTransactions = data.transactions.filter((t: any) => {
+                       return t.cardLast4 === application.mercuryCardLast4 || t.card?.last4 === application.mercuryCardLast4;
+                    });
+                    const formatted = userTransactions.map((t: any) => ({
+                      id: t.id ?? "",
+                      date: t.postedAt ?? t.createdAt,
+                      merchant: t.merchant?.name ?? t.counterpartyName ?? "Transaction",
+                      amount: t.amount ?? 0,
+                      currency: t.currency ?? "USD",
+                      status: t.status ?? "posted",
+                    }));
+                    setTransactions(formatted);
                     setSource("mercury");
                 } else {
-                    console.error("API did not return ok=true, falling back to demo data.", data?.error);
+                    console.error("API did not return ok=true, falling back to demo data.", data?.error || data?.body || response.statusText);
                     setTransactions(getFallbackTransactions());
                     setSource("fallback");
                 }
@@ -391,3 +415,5 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
+
+    
