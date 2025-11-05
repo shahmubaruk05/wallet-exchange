@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { FirebaseClientProvider } from "@/firebase";
 
 export const metadata: Metadata = {
-  title: "Wallet XChanger",
+  title: "Wallet Exchange",
   description: "Seamless currency exchange between digital wallets.",
 };
 

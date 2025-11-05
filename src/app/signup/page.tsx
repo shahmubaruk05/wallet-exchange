@@ -65,7 +65,7 @@ export default function SignupPage() {
             <CardHeader>
             <CardTitle>Create an Account</CardTitle>
             <CardDescription>
-                Join Wallet XChanger to start exchanging funds.
+                Join Wallet Exchange to start exchanging funds.
             </CardDescription>
             </CardHeader>
             <CardContent>

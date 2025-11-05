@@ -1,4 +1,4 @@
-# Wallet XChanger
+# Wallet Exchange
 
 A Next.js application for seamless currency exchange between different digital wallets like Bkash, Nagad, PayPal, Payoneer, and Wise.
 

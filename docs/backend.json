@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the Wallet XChanger system.",
+      "description": "Represents a user of the Wallet Exchange system.",
       "properties": {
         "id": {
           "type": "string",
@@ -309,8 +309,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place."
+    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet Exchange application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place."
   }
 }
-
-    

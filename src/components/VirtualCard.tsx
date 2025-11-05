@@ -24,7 +24,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({ application }) => {
       <div className="relative w-full h-56">
           <div className="w-full h-full rounded-xl bg-gradient-to-br from-primary via-blue-400 to-teal-300 shadow-lg p-6 flex flex-col justify-between text-white">
             <div className="flex justify-between items-start">
-              <span className="font-bold text-lg">Wallet XChanger</span>
+              <span className="font-bold text-lg">Wallet Exchange</span>
               <div className="w-12 h-8 bg-yellow-400 rounded-md flex items-center justify-center">
                  <div className="w-6 h-6 rounded-full bg-red-500 opacity-70 mix-blend-multiply"></div>
                  <div className="w-6 h-6 rounded-full bg-yellow-500 opacity-70 mix-blend-multiply -ml-2"></div>

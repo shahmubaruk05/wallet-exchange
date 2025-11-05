@@ -61,7 +61,7 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>
-              Access your Wallet XChanger account.
+              Access your Wallet Exchange account.
             </CardDescription>
           </CardHeader>
           <CardContent>
