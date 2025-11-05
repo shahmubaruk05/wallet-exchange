@@ -40,7 +40,6 @@ export type Transaction = {
   transactionFee: number;
   updatedAt?: string; // ISO String for when status was last updated
   adminNote?: string;
-  adminProof?: string;
 };
 
 export type ExchangeRate = {
@@ -69,3 +68,21 @@ export type CardApplication = {
   mercuryCardLast4?: string;
   adminInstruction?: string; // Instruction from admin to the user
 };
+
+export type CardTopUpStatus = "Pending" | "Completed" | "Cancelled";
+
+export type CardTopUp = {
+  id: string;
+  userId: string;
+  paymentMethod: string;
+  sentAmount: number;
+  sentCurrency: string;
+  topUpAmountUSD: number;
+  status: CardTopUpStatus;
+  createdAt: string; // ISO string
+  sendingAccountId: string;
+  transactionId: string;
+  adminNote?: string;
+};
+
+    

@@ -215,6 +215,40 @@
         "status",
         "appliedAt"
       ]
+    },
+     "CardTopUp": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CardTopUp",
+      "type": "object",
+      "description": "Represents a card top-up transaction.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "sentAmount": { "type": "number" },
+        "sentCurrency": { "type": "string" },
+        "topUpAmountUSD": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Completed", "Cancelled"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "sendingAccountId": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "adminNote": { "type": "string" }
+      },
+      "required": [
+        "id",
+        "userId",
+        "paymentMethod",
+        "sentAmount",
+        "sentCurrency",
+        "topUpAmountUSD",
+        "status",
+        "createdAt",
+        "sendingAccountId",
+        "transactionId"
+      ]
     }
   },
   "auth": {
@@ -292,8 +326,26 @@
             }
           ]
         }
+      },
+      {
+        "path": "/card_top_ups/{topUpId}",
+        "definition": {
+          "entityName": "CardTopUp",
+          "schema": {
+            "$ref": "#/backend/entities/CardTopUp"
+          },
+          "description": "Stores card top-up requests from users.",
+          "params": [
+            {
+              "name": "topUpId",
+              "description": "The unique identifier for the top-up transaction."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. The exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles. Path-based ownership ensures that only the user (or an admin with appropriate privileges) can access their own profile data. This eliminates the need for complex security rules involving `get()` calls, thereby supporting authorization independence.\n\n2.  **Exchange Rates Collection (`/exchange_rates/{exchangeRateId}`):** Stores the exchange rates. This collection is segregated to simplify security rules and enforce that all documents in this collection share the same access needs. This ensures that rules are not filters and supports secure `list` operations.\n\n3.  **Transactions Subcollection (`/users/{userId}/transactions/{transactionId}`):** Stores transactions for each user. By nesting transactions within user documents, we maintain path-based ownership, ensuring that only the user or an admin can access their transactions. This provides authorization independence and simplifies security rules.\n\n4. **Card Applications Collection (`/card_applications/{applicationId}`):** Stores card applications from users. The document ID is the user's UID to enforce a one-application-per-user rule. Users can read/write their own application, while admins can read all and write/update any application to approve/reject and issue card details. This maintains path-based ownership for users and gives admins global control."
+    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. The exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles. Path-based ownership ensures that only the user (or an admin with appropriate privileges) can access their own profile data. This eliminates the need for complex security rules involving `get()` calls, thereby supporting authorization independence.\n\n2.  **Exchange Rates Collection (`/exchange_rates/{exchangeRateId}`):** Stores the exchange rates. This collection is segregated to simplify security rules and enforce that all documents in this collection share the same access needs. This ensures that rules are not filters and supports secure `list` operations.\n\n3.  **Transactions Subcollection (`/users/{userId}/transactions/{transactionId}`):** Stores transactions for each user. By nesting transactions within user documents, we maintain path-based ownership, ensuring that only the user or an admin can access their transactions. This provides authorization independence and simplifies security rules.\n\n4. **Card Applications Collection (`/card_applications/{applicationId}`):** Stores card applications from users. The document ID is the user's UID to enforce a one-application-per-user rule. Users can read/write their own application, while admins can read all and write/update any application to approve/reject and issue card details. This maintains path-based ownership for users and gives admins global control.\n\n5. **Card Top-Ups Collection (`/card_top_ups/{topUpId}`):** Stores card top-up requests. This is a root collection to allow admins to easily query and manage all top-up requests globally, separate from individual user data."
   }
 }
+
+    

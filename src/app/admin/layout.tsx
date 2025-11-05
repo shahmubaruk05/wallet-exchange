@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {
   SidebarProvider,
@@ -9,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard } from "lucide-react";
+import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard, DollarSign } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -51,6 +52,14 @@ export default function AdminLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Card Top Ups">
+                <Link href="/admin/top-ups">
+                  <DollarSign />
+                  <span>Card Top Ups</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
@@ -60,3 +69,5 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+
+    

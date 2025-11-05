@@ -32,10 +32,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Clock, XCircle, Info } from "lucide-react";
+import { Loader2, Clock, XCircle, Info, DollarSign } from "lucide-react";
 import type { CardApplication } from "@/lib/data";
 import VirtualCard from "@/components/VirtualCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -102,6 +103,13 @@ const UserCardPage = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4 text-center">Your Virtual Card</h2>
               <VirtualCard application={application} />
+               <div className="mt-6 flex justify-center">
+                 <Button asChild>
+                    <Link href="/dashboard/cards/top-up">
+                        <DollarSign className="mr-2 h-4 w-4" /> Top Up Card
+                    </Link>
+                 </Button>
+              </div>
               {application.adminInstruction && (
                 <Alert className="mt-6">
                   <Info className="h-4 w-4" />
@@ -247,3 +255,5 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
+
+    
