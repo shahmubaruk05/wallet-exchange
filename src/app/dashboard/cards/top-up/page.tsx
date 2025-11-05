@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarSign } from "lucide-react";
 import { paymentMethods } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
