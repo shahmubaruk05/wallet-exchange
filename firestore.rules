@@ -19,7 +19,6 @@ service cloud.firestore {
     }
 
     // Secure transactions for each user.
-    // The collection name is `transactions`, not `orders`.
     match /users/{userId}/transactions/{transactionId} {
         // A user can create a transaction for themselves.
         allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.userId == userId;
