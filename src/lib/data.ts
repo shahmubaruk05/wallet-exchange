@@ -37,6 +37,7 @@ export type Transaction = {
   sendingAccountId: string;
   transactionId: string;
   receivingAccountId: string;
+  transactionFee: number;
   updatedAt?: string; // ISO String for when status was last updated
   adminNote?: string;
   adminProof?: string;

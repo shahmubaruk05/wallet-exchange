@@ -200,6 +200,7 @@ export default function ExchangeForm() {
         sendingAccountId,
         transactionId,
         receivingAccountId,
+        transactionFee,
     };
     
     const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
@@ -472,5 +473,3 @@ export default function ExchangeForm() {
       return renderForm();
   }
 }
-
-    

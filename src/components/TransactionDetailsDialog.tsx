@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -100,8 +101,8 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   };
 
 
-  const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
-    <div className="flex justify-between items-start">
+  const DetailRow = ({ label, value, className }: { label: string; value: ReactNode, className?: string }) => (
+    <div className={cn("flex justify-between items-start", className)}>
       <dt className="text-muted-foreground text-sm">{label}</dt>
       <dd className="text-right font-mono text-sm text-foreground break-all">{value}</dd>
     </div>
@@ -125,7 +126,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
               value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} 
             />
              <DetailRow label="User ID" value={tx.userId} />
-            <div className="pt-2 border-t mt-2">
+            <div className="pt-2 border-t mt-2 space-y-2">
                 <DetailRow 
                 label="You Sent" 
                 value={
@@ -135,6 +136,16 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                     </div>
                 } 
                 />
+                 {tx.transactionFee > 0 && (
+                  <DetailRow
+                    label="Transaction Fee"
+                    value={
+                      <span className="text-destructive">
+                        - {tx.transactionFee.toFixed(2)} {tx.currency}
+                      </span>
+                    }
+                  />
+                )}
                  <DetailRow 
                 label="You Received" 
                 value={
