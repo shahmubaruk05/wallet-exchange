@@ -127,11 +127,12 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
                     setTransactions(data.transactions);
                     setSource("mercury");
                 } else {
+                    console.error("API did not return ok=true, falling back to demo data.", data?.error);
                     setTransactions(getFallbackTransactions());
                     setSource("fallback");
                 }
             } catch (e: any) {
-                console.error("Error fetching mercury transactions:", e);
+                console.error("Error fetching mercury transactions, falling back to demo data:", e);
                 setTransactions(getFallbackTransactions());
                 setSource("fallback");
             } finally {
@@ -140,7 +141,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
         };
 
         fetchTransactions();
-    }, [application]);
+    }, [application.mercuryCardLast4]);
 
   const renderTransactionContent = () => {
       if (loading) {
@@ -177,7 +178,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
                             <ArrowUpRight className="h-4 w-4 text-destructive" /> : 
                             <ArrowDownLeft className="h-4 w-4 text-green-500" />
                         }
-                        <span className="font-medium">{tx.merchant}</span>
+                        <span className="font-medium">{tx.merchant ?? tx.description}</span>
                         </div>
                     </TableCell>
                     <TableCell>
@@ -390,5 +391,3 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
-
-    
