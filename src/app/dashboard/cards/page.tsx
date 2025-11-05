@@ -89,7 +89,7 @@ const CardTransactionList = () => {
                 const data = await response.json();
 
                 if (!response.ok || !data.ok) {
-                    throw new Error(data.error || "Could not load card transactions.");
+                    throw new Error("Could not load real Mercury transactions right now.");
                 }
 
                 if (data.hasCard) {
