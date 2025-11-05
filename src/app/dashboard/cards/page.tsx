@@ -72,21 +72,21 @@ const getStatusVariant = (status?: string) => {
 };
 
 
-const CardTransactionList = ({ application, userId }: { application: CardApplication, userId: string }) => {
+const CardTransactionList = ({ application }: { application: CardApplication }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchTransactions = async () => {
-            if (!application.mercuryCardLast4 || !userId) {
+            if (!application.mercuryCardLast4) {
                 setLoading(false);
                 return;
             };
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/mercury/transactions?uid=${userId}`);
+                const response = await fetch(`/api/mercury/transactions?cardLast4=${application.mercuryCardLast4}`);
                 const data = await response.json();
 
                 if (!data.ok) {
@@ -104,7 +104,7 @@ const CardTransactionList = ({ application, userId }: { application: CardApplica
         };
 
         fetchTransactions();
-    }, [application, userId]);
+    }, [application]);
 
   if (loading) {
     return (
@@ -226,7 +226,7 @@ const UserCardPage = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4 text-center">Your Virtual Card</h2>
               <VirtualCard application={application} />
-              {user && <CardTransactionList application={application} userId={user.uid} />}
+              {user && <CardTransactionList application={application} />}
             </div>
           );
         case "Pending":
@@ -345,5 +345,3 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
-
-    
