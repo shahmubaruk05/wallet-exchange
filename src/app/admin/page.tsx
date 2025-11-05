@@ -38,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO, isToday, subDays, startOfMonth, endOfMonth } from "date-fns";
-import { useFirestore, useUser, useAuth } from "@/firebase";
+import { useFirestore, useUser, useAuth, useMemoFirebase } from "@/firebase";
 import {
   collection,
   query,
@@ -402,5 +402,3 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
-
-    
