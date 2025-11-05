@@ -145,6 +145,66 @@
         "transactionId",
         "receivingAccountId"
       ]
+    },
+    "CardApplication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CardApplication",
+      "type": "object",
+      "description": "Represents a user's application for a virtual card.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who applied."
+        },
+        "name": {
+          "type": "string",
+          "description": "Applicant's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "Applicant's email address.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Applicant's phone number."
+        },
+        "billingAddress": {
+          "type": "string",
+          "description": "Applicant's billing address."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the application.",
+          "enum": ["Pending", "Approved", "Rejected"]
+        },
+        "appliedAt": {
+          "type": "string",
+          "description": "The timestamp when the application was submitted.",
+          "format": "date-time"
+        },
+        "cardNumber": {
+          "type": "string",
+          "description": "The issued card number."
+        },
+        "expiryDate": {
+          "type": "string",
+          "description": "The card's expiration date (MM/YY)."
+        },
+        "cvc": {
+          "type": "string",
+          "description": "The card's CVC code."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "email",
+        "phone",
+        "billingAddress",
+        "status",
+        "appliedAt"
+      ]
     }
   },
   "auth": {
@@ -206,8 +266,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/card_applications/{applicationId}",
+        "definition": {
+          "entityName": "CardApplication",
+          "schema": {
+            "$ref": "#/backend/entities/CardApplication"
+          },
+          "description": "Stores card application data. A user can only have one application, identified by their UID.",
+          "params": [
+            {
+              "name": "applicationId",
+              "description": "The unique identifier for the card application, typically the user's UID."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. The exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles. Path-based ownership ensures that only the user (or an admin with appropriate privileges) can access their own profile data. This eliminates the need for complex security rules involving `get()` calls, thereby supporting authorization independence.\n\n2.  **Exchange Rates Collection (`/exchange_rates/{exchangeRateId}`):** Stores the exchange rates. This collection is segregated to simplify security rules and enforce that all documents in this collection share the same access needs. This ensures that rules are not filters and supports secure `list` operations.\n\n3.  **Transactions Subcollection (`/users/{userId}/transactions/{transactionId}`):** Stores transactions for each user. By nesting transactions within user documents, we maintain path-based ownership, ensuring that only the user or an admin can access their transactions. This provides authorization independence and simplifies security rules.\n\nThe structure supports QAPs (rules are not filters) by segregating data based on access needs and using path-based ownership. This prevents unauthorized access and ensures that list operations are secure."
+    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet XChanger application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. The exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles. Path-based ownership ensures that only the user (or an admin with appropriate privileges) can access their own profile data. This eliminates the need for complex security rules involving `get()` calls, thereby supporting authorization independence.\n\n2.  **Exchange Rates Collection (`/exchange_rates/{exchangeRateId}`):** Stores the exchange rates. This collection is segregated to simplify security rules and enforce that all documents in this collection share the same access needs. This ensures that rules are not filters and supports secure `list` operations.\n\n3.  **Transactions Subcollection (`/users/{userId}/transactions/{transactionId}`):** Stores transactions for each user. By nesting transactions within user documents, we maintain path-based ownership, ensuring that only the user or an admin can access their transactions. This provides authorization independence and simplifies security rules.\n\n4. **Card Applications Collection (`/card_applications/{applicationId}`):** Stores card applications from users. The document ID is the user's UID to enforce a one-application-per-user rule. Users can read/write their own application, while admins can read all and write/update any application to approve/reject and issue card details. This maintains path-based ownership for users and gives admins global control."
   }
 }

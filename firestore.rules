@@ -41,5 +41,13 @@ service cloud.firestore {
       // Only admins can write rates.
       allow write: if isAdmin();
     }
+
+    // Secure card applications. The document ID is the user's UID.
+    match /card_applications/{userId} {
+      // User can create, read, and update their own application.
+      allow create, read, update: if isSignedIn() && request.auth.uid == userId;
+      // Admins can read and update any application.
+      allow read, update, list: if isAdmin();
+    }
   }
 }

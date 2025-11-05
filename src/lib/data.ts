@@ -47,4 +47,20 @@ export type ExchangeRate = {
   toCurrency: string;
   rate: number;
   lastUpdated: string;
-}
+};
+
+export type CardApplicationStatus = "Pending" | "Approved" | "Rejected";
+
+export type CardApplication = {
+  id: string; // Document ID will be user's UID
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  billingAddress: string;
+  status: CardApplicationStatus;
+  appliedAt: string; // ISO string
+  cardNumber?: string;
+  expiryDate?: string; // MM/YY
+  cvc?: string;
+};

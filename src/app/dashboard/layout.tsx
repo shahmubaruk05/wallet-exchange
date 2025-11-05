@@ -12,7 +12,7 @@ import {
   SidebarInset,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, History, User, LogOut } from "lucide-react";
+import { ArrowLeftRight, History, User, LogOut, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -66,6 +66,14 @@ export default function DashboardLayout({
                       <Link href="/dashboard/transactions">
                       <History />
                       <span>Recent Transactions</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="My Card">
+                      <Link href="/dashboard/cards">
+                      <CreditCard />
+                      <span>My Card</span>
                       </Link>
                   </SidebarMenuButton>
                   </SidebarMenuItem>
