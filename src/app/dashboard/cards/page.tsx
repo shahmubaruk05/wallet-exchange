@@ -71,33 +71,69 @@ const getStatusVariant = (status?: string) => {
   }
 };
 
+function getFallbackTransactions() {
+  const now = new Date();
+  const day = 24 * 60 * 60 * 1000;
+  return [
+    {
+      id: "demo-1",
+      date: new Date(now.getTime() - 1 * day).toISOString(),
+      merchant: "Demo Amazon Web Services",
+      amount: -12.5,
+      currency: "USD",
+      status: "posted",
+    },
+    {
+      id: "demo-2",
+      date: new Date(now.getTime() - 2 * day).toISOString(),
+      merchant: "Demo Stripe Payment",
+      amount: 250,
+      currency: "USD",
+      status: "posted",
+    },
+    {
+      id: "demo-3",
+      date: new Date(now.getTime() - 3 * day).toISOString(),
+      merchant: "Demo Figma Subscription",
+      amount: -15,
+      currency: "USD",
+      status: "posted",
+    },
+  ];
+}
+
 
 const CardTransactionList = ({ application }: { application: CardApplication }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [source, setSource] = useState<"mercury" | "fallback" | null>(null);
 
     useEffect(() => {
         const fetchTransactions = async () => {
             if (!application.mercuryCardLast4) {
                 setLoading(false);
+                setTransactions([]);
+                setSource("mercury"); // No card, so no transactions to fetch
                 return;
             };
+            
             setLoading(true);
-            setError(null);
+            
             try {
-                const response = await fetch(`/api/mercury/transactions?cardLast4=${application.mercuryCardLast4}`);
+                const response = await fetch(`/api/mercury/transactions?cardLast4=${application.mercuryCardLast4}`, { cache: "no-store" });
                 const data = await response.json();
 
-                if (!data.ok) {
-                    throw new Error(data.error || "Failed to fetch transactions.");
+                if (data && data.ok === true && Array.isArray(data.transactions)) {
+                    setTransactions(data.transactions);
+                    setSource("mercury");
+                } else {
+                    setTransactions(getFallbackTransactions());
+                    setSource("fallback");
                 }
-                
-                setTransactions(data.transactions);
-
             } catch (e: any) {
                 console.error("Error fetching mercury transactions:", e);
-                setError("Could not load real Mercury transactions right now.");
+                setTransactions(getFallbackTransactions());
+                setSource("fallback");
             } finally {
                 setLoading(false);
             }
@@ -106,21 +142,62 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
         fetchTransactions();
     }, [application]);
 
-  if (loading) {
-    return (
-        <div className="mt-8 flex justify-center items-center h-20">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading transactions...</span>
-        </div>
-    )
-  }
+  const renderTransactionContent = () => {
+      if (loading) {
+        return (
+            <div className="mt-8 flex justify-center items-center h-20">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading transactions...</span>
+            </div>
+        )
+      }
 
-  if (error) {
-     return <p className="mt-8 text-center text-destructive">{error}</p>;
-  }
+      if (transactions.length === 0) {
+        return <p className="mt-8 text-center text-muted-foreground">No transactions found for this card.</p>;
+      }
 
-  if (transactions.length === 0) {
-    return <p className="mt-8 text-center text-muted-foreground">No transactions found for this card.</p>;
+      return (
+        <>
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+                </TableHeader>
+                <TableBody>
+                {transactions.map((tx) => (
+                    <TableRow key={tx.id}>
+                    <TableCell className="text-muted-foreground text-xs">{tx.date ? format(parseISO(tx.date), "PP") : 'N/A'}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-3">
+                        {tx.amount < 0 ? 
+                            <ArrowUpRight className="h-4 w-4 text-destructive" /> : 
+                            <ArrowDownLeft className="h-4 w-4 text-green-500" />
+                        }
+                        <span className="font-medium">{tx.merchant}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                        <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
+                    </TableCell>
+                    <TableCell className={cn("text-right font-mono", tx.amount < 0 ? 'text-destructive' : 'text-green-500')}>
+                        {tx.amount < 0 ? '' : '+'}
+                        {tx.amount.toFixed(2)} {tx.currency}
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+            {source === "fallback" && (
+                <p className="mt-2 text-xs text-slate-400 text-center">
+                    Showing demo data because Mercury is not accessible from this environment.
+                </p>
+            )}
+        </>
+      )
   }
 
   return (
@@ -130,39 +207,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
         <CardDescription>Your recent Mercury card transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="text-muted-foreground text-xs">{tx.date ? format(parseISO(tx.date), "PP") : 'N/A'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                       {tx.amount < 0 ? 
-                        <ArrowUpRight className="h-4 w-4 text-destructive" /> : 
-                        <ArrowDownLeft className="h-4 w-4 text-green-500" />
-                       }
-                       <span className="font-medium">{tx.merchant}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                      <Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>
-                  </TableCell>
-                  <TableCell className={cn("text-right font-mono", tx.amount < 0 ? 'text-destructive' : 'text-green-500')}>
-                     {tx.amount < 0 ? '' : '+'}
-                     {tx.amount.toFixed(2)} {tx.currency}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {renderTransactionContent()}
       </CardContent>
     </Card>
   )
@@ -345,3 +390,5 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
+
+    
