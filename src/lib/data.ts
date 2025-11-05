@@ -64,3 +64,22 @@ export type CardApplication = {
   expiryDate?: string; // MM/YY
   cvc?: string;
 };
+
+// New type for Mercury Card Transactions
+export type CardTransaction = {
+  id: string;
+  date: string; // ISO string
+  description: string;
+  amount: number;
+  currency: 'USD';
+  type: 'debit' | 'credit';
+};
+
+// Mock data for card transactions
+export const mockCardTransactions: CardTransaction[] = [
+    { id: 'ctx-1', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), description: 'Amazon Web Services', amount: 12.50, currency: 'USD', type: 'debit' },
+    { id: 'ctx-2', date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), description: 'Stripe Payment', amount: 250.00, currency: 'USD', type: 'credit' },
+    { id: 'ctx-3', date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), description: 'Figma Subscription', amount: 15.00, currency: 'USD', type: 'debit' },
+    { id: 'ctx-4', date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), description: 'Vercel Hobby', amount: 20.00, currency: 'USD', type: 'debit' },
+    { id: 'ctx-5', date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), description: 'Client Payment', amount: 1200.00, currency: 'USD', type: 'credit' },
+];

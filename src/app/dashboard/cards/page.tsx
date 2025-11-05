@@ -12,7 +12,7 @@ import {
   useMemoFirebase,
   setDocumentNonBlocking,
 } from "@/firebase";
-import { doc, serverTimestamp } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +21,14 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 import {
   Form,
   FormControl,
@@ -32,9 +40,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, Clock, XCircle } from "lucide-react";
-import type { CardApplication } from "@/lib/data";
+import { Loader2, CheckCircle, Clock, XCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import type { CardApplication, CardTransaction } from "@/lib/data";
+import { mockCardTransactions } from "@/lib/data";
 import VirtualCard from "@/components/VirtualCard";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -42,6 +53,49 @@ const formSchema = z.object({
   phone: z.string().min(10, "Phone number is too short."),
   billingAddress: z.string().min(10, "Billing address is too short."),
 });
+
+const CardTransactionList = () => {
+  const transactions = mockCardTransactions; // Using mock data
+
+  return (
+     <Card className="mt-8">
+      <CardHeader>
+        <CardTitle>Recent Transactions</CardTitle>
+        <CardDescription>Your recent Mercury card transactions.</CardDescription>
+      </CardHeader>
+      <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((tx) => (
+                <TableRow key={tx.id}>
+                  <TableCell className="text-muted-foreground text-xs">{format(parseISO(tx.date), "MMM d")}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                       {tx.type === 'debit' ? 
+                        <ArrowUpRight className="h-4 w-4 text-destructive" /> : 
+                        <ArrowDownLeft className="h-4 w-4 text-green-500" />
+                       }
+                       <span className="font-medium">{tx.description}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className={cn("text-right font-mono", tx.type === 'debit' ? 'text-destructive' : 'text-green-500')}>
+                    {tx.type === 'debit' ? '-' : '+'} ${tx.amount.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+      </CardContent>
+    </Card>
+  )
+}
 
 const UserCardPage = () => {
   const firestore = useFirestore();
@@ -101,6 +155,7 @@ const UserCardPage = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4 text-center">Your Virtual Card</h2>
               <VirtualCard application={application} />
+              <CardTransactionList />
             </div>
           );
         case "Pending":
