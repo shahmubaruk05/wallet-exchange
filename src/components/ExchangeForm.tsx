@@ -100,7 +100,7 @@ export default function ExchangeForm() {
         nagad: 0.014,     // 1.4%
         wise: 0.029,      // 2.9%
         payoneer: 0.01,   // 1%
-        paypal: 0.029, // 2.9%
+        paypal: 0.05, // 5%
       };
 
       if (sendMethod.id in feePercentages) {
@@ -475,4 +475,3 @@ export default function ExchangeForm() {
   }
 }
 
-    

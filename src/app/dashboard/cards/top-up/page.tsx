@@ -87,7 +87,7 @@ export default function CardTopUpPage() {
         nagad: 0.014,
         wise: 0.029,
         payoneer: 0.01,
-        paypal: 0.029,
+        paypal: 0.05,
       };
 
       if (sendMethod.id in feePercentages) {
@@ -446,5 +446,3 @@ export default function CardTopUpPage() {
   }
 }
 
-
-    
