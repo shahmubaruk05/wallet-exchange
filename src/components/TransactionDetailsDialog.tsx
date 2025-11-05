@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 type TransactionWithId = Transaction & { id: string };
 
@@ -37,6 +38,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [adminNote, setAdminNote] = useState(tx.adminNote || '');
+  const pathname = usePathname();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -44,7 +46,15 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   }, [firestore, user]);
 
   const { data: userData } = useDoc(userDocRef);
-  const isAdmin = (userData as any)?.role === 'admin';
+  
+  // Determine if the user is an admin based on their role AND the current path.
+  // The controls should only ever be visible on the /admin path.
+  const isAdmin = useMemo(() => {
+    const userIsAdmin = (userData as any)?.role === 'admin';
+    const onAdminPage = pathname.startsWith('/admin');
+    return userIsAdmin && onAdminPage;
+  }, [userData, pathname]);
+
 
   useEffect(() => {
     if (isOpen) {
