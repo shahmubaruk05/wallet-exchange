@@ -72,30 +72,31 @@ const getStatusVariant = (status?: string) => {
 };
 
 
-const CardTransactionList = ({ application }: { application: CardApplication }) => {
+const CardTransactionList = ({ application, userId }: { application: CardApplication, userId: string }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchTransactions = async () => {
-            if (!application.mercuryCardLast4) {
+            if (!application.mercuryCardLast4 || !userId) {
                 setLoading(false);
                 return;
             };
             setLoading(true);
             setError(null);
             try {
-                // In a real app, this would fetch from /api/mercury/transactions
-                // For now, we simulate a successful response with mock data.
-                const mockTransactions = [
-                    { id: '1', date: new Date().toISOString(), merchant: 'Online Store', amount: -59.99, currency: 'USD', status: 'posted' },
-                    { id: '2', date: new Date(Date.now() - 86400000).toISOString(), merchant: 'Coffee Shop', amount: -4.50, currency: 'USD', status: 'posted' },
-                    { id: '3', date: new Date(Date.now() - 172800000).toISOString(), merchant: 'Refund', amount: 20.00, currency: 'USD', status: 'posted' },
-                ];
-                setTransactions(mockTransactions);
+                const response = await fetch(`/api/mercury/transactions?uid=${userId}`);
+                const data = await response.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || "Failed to fetch transactions.");
+                }
+                
+                setTransactions(data.transactions);
 
             } catch (e: any) {
+                console.error("Error fetching mercury transactions:", e);
                 setError("Could not load real Mercury transactions right now.");
             } finally {
                 setLoading(false);
@@ -103,7 +104,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
         };
 
         fetchTransactions();
-    }, [application]);
+    }, [application, userId]);
 
   if (loading) {
     return (
@@ -141,7 +142,7 @@ const CardTransactionList = ({ application }: { application: CardApplication }) 
             <TableBody>
               {transactions.map((tx) => (
                 <TableRow key={tx.id}>
-                  <TableCell className="text-muted-foreground text-xs">{format(parseISO(tx.date), "PP")}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{tx.date ? format(parseISO(tx.date), "PP") : 'N/A'}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                        {tx.amount < 0 ? 
@@ -225,7 +226,7 @@ const UserCardPage = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4 text-center">Your Virtual Card</h2>
               <VirtualCard application={application} />
-              <CardTransactionList application={application} />
+              {user && <CardTransactionList application={application} userId={user.uid} />}
             </div>
           );
         case "Pending":
@@ -344,3 +345,5 @@ const UserCardPage = () => {
 };
 
 export default UserCardPage;
+
+    
