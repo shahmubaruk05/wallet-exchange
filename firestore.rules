@@ -18,8 +18,6 @@ service cloud.firestore {
       allow update, write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       // A user can read their own document. An admin can read any user document.
       allow get: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      // An admin can list all users.
-      allow list: if isAdmin();
     }
 
     // Secure transactions for each user.
@@ -60,9 +58,6 @@ service cloud.firestore {
       allow read: if isSignedIn();
       // Only admins can write limits.
       allow write: if isAdmin();
-    }
-     match /{path=**}/users/{userId} {
-      allow list, get: if isAdmin();
     }
   }
 }
