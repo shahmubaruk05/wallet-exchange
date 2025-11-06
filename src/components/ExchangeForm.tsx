@@ -323,7 +323,7 @@ export default function ExchangeForm() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {paymentMethods.map((method) => (
+                  {paymentMethods.filter(m => m.id !== 'virtual_card_top_up').map((method) => (
                     <SelectItem key={method.id} value={method.id}>
                       <div className="flex items-center gap-3">
                         <PaymentIcon id={method.id} />
@@ -389,7 +389,7 @@ export default function ExchangeForm() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {paymentMethods.map((method) => (
+                  {paymentMethods.filter(m => m.id !== 'virtual_card_top_up').map((method) => (
                     <SelectItem key={method.id} value={method.id}>
                       <div className="flex items-center gap-3">
                         <PaymentIcon id={method.id} />
