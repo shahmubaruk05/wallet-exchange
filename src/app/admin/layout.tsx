@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard, DollarSign, Users } from "lucide-react";
+import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard, DollarSign, Users, Limit } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -49,6 +49,14 @@ export default function AdminLayout({
                 <Link href="/admin/rates">
                   <Coins />
                   <span>Exchange Rates</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Exchange Limits">
+                <Link href="/admin/limits">
+                  <Limit />
+                  <span>Exchange Limits</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

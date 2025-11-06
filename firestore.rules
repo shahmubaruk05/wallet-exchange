@@ -50,6 +50,14 @@ service cloud.firestore {
       // Admins can read and update any application.
       allow read, update, list: if isAdmin();
     }
+
+    // Secure exchange limits.
+    match /exchange_limits/{limitId} {
+      // Any signed-in user can read limits.
+      allow read: if isSignedIn();
+      // Only admins can write limits.
+      allow write: if isAdmin();
+    }
   }
 }
 

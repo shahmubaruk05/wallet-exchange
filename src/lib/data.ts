@@ -94,4 +94,12 @@ export type CardTopUp = {
   adminNote?: string;
 };
 
+export type ExchangeLimit = {
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    minAmount: number;
+    maxAmount: number;
+}
+
     

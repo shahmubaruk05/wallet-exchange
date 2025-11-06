@@ -230,6 +230,41 @@
         "status",
         "appliedAt"
       ]
+    },
+    "ExchangeLimit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExchangeLimit",
+      "type": "object",
+      "description": "Defines minimum and maximum transaction limits for currency pairs.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the limit rule."
+        },
+        "fromCurrency": {
+          "type": "string",
+          "description": "The source currency (e.g., 'USD', 'BDT')."
+        },
+        "toCurrency": {
+          "type": "string",
+          "description": "The destination currency (e.g., 'BDT', 'USD')."
+        },
+        "minAmount": {
+          "type": "number",
+          "description": "The minimum amount allowed for this exchange, in the source currency."
+        },
+        "maxAmount": {
+          "type": "number",
+          "description": "The maximum amount allowed for this exchange, in the source currency."
+        }
+      },
+      "required": [
+        "id",
+        "fromCurrency",
+        "toCurrency",
+        "minAmount",
+        "maxAmount"
+      ]
     }
   },
   "auth": {
@@ -307,8 +342,26 @@
             }
           ]
         }
+      },
+      {
+        "path": "/exchange_limits/{limitId}",
+        "definition": {
+          "entityName": "ExchangeLimit",
+          "schema": {
+            "$ref": "#/backend/entities/ExchangeLimit"
+          },
+          "description": "Stores minimum and maximum transaction limits for currency pairs. Managed by admins.",
+          "params": [
+            {
+              "name": "limitId",
+              "description": "The unique identifier for the exchange limit rule."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet Exchange application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place."
   }
 }
+
+    
