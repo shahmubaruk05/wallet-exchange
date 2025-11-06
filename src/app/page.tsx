@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -44,7 +45,7 @@ export default function Home() {
             <div className="flex flex-col justify-center space-y-6">
               <div className="space-y-4">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900 dark:text-slate-50">
-                  Your All-in-One Digital Wallet XChanger
+                  Your All-in-One Digital Wallet Exchange
                 </h1>
                 <p className="max-w-[600px] text-slate-600 md:text-xl dark:text-slate-400">
                   Exchange funds between PayPal, Payoneer, Wise, bKash, Nagad,
@@ -243,7 +244,7 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/50 px-3 py-1 text-sm font-medium text-blue-800 dark:text-blue-300">
-              Why Wallet XChanger
+              Why Wallet Exchange
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-slate-50">
               Built for Freelancers & Online Businesses
@@ -296,7 +297,7 @@ export default function Home() {
             {[
               {
                 quote:
-                  "Wallet XChanger is a lifesaver! Getting paid from US clients to my bKash is now incredibly fast and simple.",
+                  "Wallet Exchange is a lifesaver! Getting paid from US clients to my bKash is now incredibly fast and simple.",
                 name: "M. Hasan",
                 role: "Upwork Designer",
               },
@@ -345,7 +346,7 @@ export default function Home() {
               },
               {
                 q: "What wallets do you support?",
-                a: "We support PayPal, Payoneer, Wise, bKash, and Nagad for both sending and receiving funds. You can also use your Wallet XChanger balance.",
+                a: "We support PayPal, Payoneer, Wise, bKash, and Nagad for both sending and receiving funds. You can also use your Wallet Exchange balance.",
               },
               {
                 q: "Is there a minimum or maximum amount?",

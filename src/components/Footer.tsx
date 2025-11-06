@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { ArrowLeftRight } from "lucide-react";
 
@@ -10,7 +11,7 @@ const Footer = () => {
             <Link href="/" className="flex items-center space-x-2">
               <ArrowLeftRight className="h-7 w-7 text-primary" />
               <span className="text-xl font-bold text-slate-900 dark:text-slate-50">
-                Wallet XChanger
+                Wallet Exchange
               </span>
             </Link>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xs">
@@ -67,10 +68,10 @@ const Footer = () => {
         </div>
         <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-            &copy; {new Date().getFullYear()} Wallet XChanger. All Rights
+            &copy; {new Date().getFullYear()} Wallet Exchange. All Rights
             Reserved.
             <br />
-            Wallet XChanger is a digital asset exchange platform. We are not a
+            Wallet Exchange is a digital asset exchange platform. We are not a
             licensed bank or financial institution.
           </p>
         </div>
