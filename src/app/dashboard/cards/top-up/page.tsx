@@ -532,7 +532,7 @@ export default function CardTopUpPage() {
                             </div>
                         </CardContent>
                          <CardFooter className="flex-col sm:flex-row gap-2">
-                            <Button variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
+                            <Button type="button" variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
                                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
                             </Button>
                             <Button type="submit" className="w-full sm:w-auto flex-grow">
@@ -632,7 +632,7 @@ export default function CardTopUpPage() {
             </div>
             </CardContent>
             <CardFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <Button type="submit" className="w-full sm:w-auto flex-grow">
