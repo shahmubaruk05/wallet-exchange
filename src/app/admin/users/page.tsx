@@ -18,8 +18,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -28,14 +28,28 @@ import Link from "next/link";
 
 const AdminUsersPage = () => {
   const firestore = useFirestore();
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "users"), orderBy("email"));
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!firestore) return;
+      setIsLoading(true);
+      try {
+        const usersQuery = query(collection(firestore, "users"), orderBy("email"));
+        const querySnapshot = await getDocs(usersQuery);
+        const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        setAllUsers(users);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUsers();
   }, [firestore]);
 
-  const { data: allUsers, isLoading } = useCollection<User>(usersQuery);
 
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
