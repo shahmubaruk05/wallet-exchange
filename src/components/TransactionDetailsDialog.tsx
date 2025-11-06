@@ -23,7 +23,7 @@ import { doc, serverTimestamp, runTransaction, increment } from 'firebase/firest
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, DollarSign, Landmark } from 'lucide-react';
+import { Info, DollarSign, Landmark, Copy, Check } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +40,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [adminNote, setAdminNote] = useState(tx.adminNote || '');
+  const [copiedStates, setCopiedStates] = useState<{[key: string]: boolean}>({});
   const pathname = usePathname();
 
   const userDocRef = useMemoFirebase(() => {
@@ -61,8 +62,17 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   useEffect(() => {
     if (isOpen) {
       setAdminNote(tx.adminNote || '');
+      setCopiedStates({});
     }
   }, [isOpen, tx.adminNote]);
+
+  const handleCopy = (key: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedStates(prev => ({ ...prev, [key]: true }));
+    toast({ title: 'Copied to clipboard!' });
+    setTimeout(() => setCopiedStates(prev => ({...prev, [key]: false})), 2000);
+  };
+
 
   const getStatusVariant = (status: Transaction['status']) => {
     switch (status) {
@@ -136,10 +146,24 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
 };
 
 
-  const DetailRow = ({ label, value, className }: { label: string; value: ReactNode, className?: string }) => (
-    <div className={cn("flex justify-between items-start", className)}>
+  const DetailRow = ({ label, value, copyValue, copyKey }: { label: string; value: ReactNode; copyValue?: string; copyKey?: string }) => (
+    <div className="flex justify-between items-start py-2 border-b">
       <dt className="text-muted-foreground text-sm">{label}</dt>
-      <dd className="text-right font-mono text-sm text-foreground break-all">{value}</dd>
+      <dd className="text-right font-mono text-sm text-foreground break-all flex items-center gap-2">
+        <span>{value}</span>
+        {copyValue && copyKey && (
+           <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => handleCopy(copyKey, copyValue)}
+                className="h-6 w-6"
+                aria-label={`Copy ${label}`}
+            >
+                {copiedStates[copyKey] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+        )}
+      </dd>
     </div>
   );
 
@@ -156,19 +180,19 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Transaction Details</DialogTitle>
-          <DialogDescription>
-            Order ID: {tx.id}
-          </DialogDescription>
+           <div className="text-xs text-muted-foreground pt-1">
+             <DetailRow label="Order ID" value={tx.id} copyValue={tx.id} copyKey="orderId"/>
+           </div>
         </DialogHeader>
-        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
-          <dl className="space-y-2">
+        <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto pr-2">
+          <dl>
             <DetailRow label="Date" value={format(parseISO(tx.transactionDate), 'PPp')} />
             <DetailRow 
               label="Status" 
               value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} 
             />
-             <DetailRow label="User ID" value={tx.userId} />
-            <div className="pt-2 border-t mt-2 space-y-2">
+             <DetailRow label="User ID" value={tx.userId} copyValue={tx.userId} copyKey="userId"/>
+            <div className="pt-2 mt-2 space-y-2">
                 <DetailRow 
                 label="You Sent" 
                 value={
@@ -202,13 +226,13 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                     } 
                 />
             </div>
-            <div className="pt-2 border-t mt-2">
+            <div className="pt-2 mt-2">
               <DetailRow label="From Account" value={tx.sendingAccountId} />
-              <DetailRow label="Gateway Trx ID" value={tx.transactionId} />
+              <DetailRow label="Gateway Trx ID" value={tx.transactionId} copyValue={tx.transactionId} copyKey="gatewayTrxId"/>
               <DetailRow label="To Account" value={tx.receivingAccountId} />
             </div>
              {tx.adminNote && (
-                <div className="pt-2 border-t mt-2">
+                <div className="pt-2 mt-2">
                     <Alert>
                         <Info className="h-4 w-4" />
                         <AlertTitle>Note from Admin</AlertTitle>
