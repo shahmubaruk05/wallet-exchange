@@ -100,7 +100,7 @@ export function ManageLimitDialog({
         updateDocumentNonBlocking(limitRef, dataToSave);
          toast({
             title: "Limit Updated",
-            description: "The exchange limit has been successfully updated.",
+            description: "The limit has been successfully updated.",
             className: "bg-accent text-accent-foreground",
         });
     } else {
@@ -109,7 +109,7 @@ export function ManageLimitDialog({
         addDocumentNonBlocking(limitsCol, dataToSave);
          toast({
             title: "Limit Created",
-            description: "A new exchange limit has been created.",
+            description: "A new limit has been created.",
             className: "bg-accent text-accent-foreground",
         });
     }
@@ -124,9 +124,9 @@ export function ManageLimitDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Manage' : 'Create'} Exchange Limit</DialogTitle>
+          <DialogTitle>{isEditing ? 'Manage' : 'Create'} Limit</DialogTitle>
           <DialogDescription>
-            Set the minimum and maximum amounts for an exchange method pair.
+            Set the min/max amounts for an exchange or top-up method pair.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -145,7 +145,7 @@ export function ManageLimitDialog({
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {availableFromMethods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                        {availableFromMethods.filter(p => p.id !== 'virtual_card_top_up').map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

@@ -39,7 +39,15 @@ const AdminLimitsPage = () => {
     return paymentMethods.find(p => p.id === id)?.name || id;
   }
   const getMethodCurrency = (id: string) => {
-    return paymentMethods.find(p => p.id === id)?.currency || '';
+    const method = paymentMethods.find(p => p.id === id);
+    // For card top-ups, the 'from' currency is what matters for the limit.
+    if (id === 'virtual_card_top_up' && limits?.length) {
+        const relevantLimit = limits.find(l => l.toMethod === 'virtual_card_top_up');
+        if (relevantLimit) {
+            return paymentMethods.find(p => p.id === relevantLimit.fromMethod)?.currency || '';
+        }
+    }
+    return method?.currency || '';
   }
 
 
@@ -47,8 +55,8 @@ const AdminLimitsPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-            <h1 className="text-3xl font-bold">Exchange Limits</h1>
-            <p className="text-muted-foreground">Manage minimum and maximum transaction amounts for currency pairs.</p>
+            <h1 className="text-3xl font-bold">Exchange & Top-up Limits</h1>
+            <p className="text-muted-foreground">Manage minimum and maximum transaction amounts.</p>
         </div>
          <ManageLimitDialog>
             <Button>
@@ -61,7 +69,7 @@ const AdminLimitsPage = () => {
         <CardHeader>
           <CardTitle>Current Limits</CardTitle>
           <CardDescription>
-            These rules define the allowed transaction amounts for users.
+            These rules define the allowed transaction amounts for users for both exchanges and card top-ups.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,7 +97,7 @@ const AdminLimitsPage = () => {
               {!isLoading && (!limits || limits.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center">
-                    No exchange limits have been set up.
+                    No exchange or top-up limits have been set up.
                   </TableCell>
                 </TableRow>
               )}

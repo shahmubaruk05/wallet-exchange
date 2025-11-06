@@ -2,8 +2,8 @@
 export type PaymentMethod = {
   id: string;
   name: string;
-  currency: "BDT" | "USD";
-  type: "mobile" | "e-wallet";
+  currency: "BDT" | "USD" | "VIRTUAL";
+  type: "mobile" | "e-wallet" | "virtual-card";
 };
 
 export const paymentMethods: PaymentMethod[] = [
@@ -12,6 +12,7 @@ export const paymentMethods: PaymentMethod[] = [
   { id: "paypal", name: "PayPal", currency: "USD", type: "e-wallet" },
   { id: "payoneer", name: "Payoneer", currency: "USD", type: "e-wallet" },
   { id: "wise", name: "Wise", currency: "USD", type: "e-wallet" },
+  { id: "virtual_card_top_up", name: "Virtual Card Top Up", currency: "USD", type: "virtual-card"},
 ];
 
 // Mock exchange rates, to be replaced by Firestore data

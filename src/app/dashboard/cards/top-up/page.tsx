@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarSign } from "lucide-react";
-import { paymentMethods } from "@/lib/data";
+import { paymentMethods, type ExchangeLimit } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
@@ -58,6 +58,13 @@ export default function CardTopUpPage() {
 
   const { data: exchangeRatesData } = useCollection<ExchangeRate>(exchangeRatesQuery);
 
+  const exchangeLimitsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'exchange_limits');
+  }, [firestore]);
+
+  const { data: limitsData } = useCollection<ExchangeLimit>(exchangeLimitsQuery);
+
   const exchangeRates = useMemo(() => {
     if (!exchangeRatesData) return { BDT_TO_USD_RATE: 127.0 };
     const bdtToUsdRateDoc = exchangeRatesData.find(rate => rate.fromCurrency === 'BDT' && rate.toCurrency === 'USD');
@@ -70,6 +77,14 @@ export default function CardTopUpPage() {
     () => paymentMethods.find((p) => p.id === sendMethodId)!,
     [sendMethodId]
   );
+
+  const currentLimit = useMemo(() => {
+    if (!limitsData) return null;
+    return limitsData.find(
+      (limit) =>
+        limit.fromMethod === sendMethod.id && limit.toMethod === 'virtual_card_top_up'
+    );
+  }, [limitsData, sendMethod]);
   
   const handleSendAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSendAmount(e.target.value);
@@ -157,7 +172,9 @@ export default function CardTopUpPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (parseFloat(sendAmount) <= 0 || isNaN(parseFloat(sendAmount))) {
+    const sendAmountNum = parseFloat(sendAmount);
+
+    if (isNaN(sendAmountNum) || sendAmountNum <= 0) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid amount to send.",
@@ -165,15 +182,37 @@ export default function CardTopUpPage() {
       });
       return;
     }
-     if (parseFloat(receiveAmount) < 50) {
-      toast({
-        title: "Minimum Top Up is $50",
-        description:
-          "After fees, the amount you receive on your card must be at least $50.",
-        variant: "destructive",
-      });
-      return;
+
+    if (currentLimit) {
+      if (sendAmountNum < currentLimit.minAmount) {
+        toast({
+          title: "Amount Too Low",
+          description: `Minimum top-up amount is ${currentLimit.minAmount} ${sendMethod.currency}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (sendAmountNum > currentLimit.maxAmount) {
+        toast({
+          title: "Amount Too High",
+          description: `Maximum top-up amount is ${currentLimit.maxAmount} ${sendMethod.currency}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+        // Fallback or default check if no specific limit is found
+        const receiveAmountNum = parseFloat(receiveAmount);
+        if (receiveAmountNum < 50) {
+            toast({
+                title: "Minimum Top Up is $50",
+                description: "After fees, the amount you receive on your card must be at least $50.",
+                variant: "destructive",
+            });
+            return;
+        }
     }
+
     if (!user) {
         toast({
             title: "Authentication Required",
@@ -250,7 +289,7 @@ export default function CardTopUpPage() {
           Card Top Up
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Add funds to your virtual card. Minimum top up is $50.
+          Add funds to your virtual card.
         </p>
       </div>
         <Card className="w-full shadow-lg">
@@ -281,7 +320,7 @@ export default function CardTopUpPage() {
                     </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                    {paymentMethods.map((method) => (
+                    {paymentMethods.filter(m => m.id !== 'virtual_card_top_up').map((method) => (
                         <SelectItem key={method.id} value={method.id}>
                         <div className="flex items-center gap-3">
                             <PaymentIcon id={method.id} />
@@ -320,10 +359,10 @@ export default function CardTopUpPage() {
                             <span>Rate: {rateText}</span>
                         </div>
                     )}
-                    {transactionFee > 0 && (
+                     {currentLimit && (
                         <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
-                             <Info className="h-4 w-4" />
-                             <span>Fee: {transactionFee.toFixed(2)} {sendMethod.currency}</span>
+                            <Info className="h-4 w-4" />
+                            <span>Limit: {currentLimit.minAmount.toLocaleString()} - {currentLimit.maxAmount.toLocaleString()} {sendMethod.currency}</span>
                         </div>
                     )}
                     </>
@@ -505,5 +544,3 @@ export default function CardTopUpPage() {
       return renderForm();
   }
 }
-
-    
