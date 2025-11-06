@@ -19,9 +19,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, getDocs, collectionGroup } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import type { User } from "@/lib/data";
-import { format, parseISO } from "date-fns";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -29,35 +28,17 @@ import Link from "next/link";
 
 const AdminUsersPage = () => {
   const firestore = useFirestore();
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      if (!firestore) return;
-      setIsLoading(true);
-      try {
-        const usersQuery = query(
-          collectionGroup(firestore, "users"),
-          orderBy("email")
-        );
-        const usersSnapshot = await getDocs(usersQuery);
-        const users = usersSnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as User)
-        );
-        setAllUsers(users);
-      } catch (error) {
-        console.error("Error fetching all users:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAllUsers();
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "users"), orderBy("email"));
   }, [firestore]);
 
+  const { data: allUsers, isLoading } = useCollection<User>(usersQuery);
 
   const filteredUsers = useMemo(() => {
+    if (!allUsers) return [];
     return allUsers.filter((user) => {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
@@ -103,7 +84,7 @@ const AdminUsersPage = () => {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={4} className="text-center">
                     <div className="flex justify-center items-center p-4">
                       <Loader2 className="h-6 w-6 animate-spin" />
                       <span className="ml-2">Loading users...</span>
@@ -113,7 +94,7 @@ const AdminUsersPage = () => {
               )}
               {!isLoading && (!filteredUsers || filteredUsers.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={4} className="text-center">
                     No users found.
                   </TableCell>
                 </TableRow>
