@@ -173,5 +173,3 @@ export function UserDetailsForm({ userData, userId }: UserDetailsFormProps) {
     </Form>
   );
 }
-
-    
