@@ -188,9 +188,9 @@ const UserCardPage = () => {
         return (
             <Alert variant="destructive">
                 <Wallet className="h-4 w-4" />
-                <AlertTitle>Insufficient Balance</AlertTitle>
+                <AlertTitle>Minimum Balance Required</AlertTitle>
                 <AlertDescription>
-                    You need a minimum balance of $10 in your wallet to apply for a virtual card. Your current balance is <strong>${(userData?.walletBalance ?? 0).toFixed(2)}</strong>.
+                    To apply for a virtual card, a minimum wallet balance of $10 is required. Please note, this is not a fee and the balance remains yours to use. Your current balance is <strong>${(userData?.walletBalance ?? 0).toFixed(2)}</strong>.
                     <Button asChild className="mt-4 w-full">
                         <Link href="/dashboard/add-funds">Add Funds Now</Link>
                     </Button>
