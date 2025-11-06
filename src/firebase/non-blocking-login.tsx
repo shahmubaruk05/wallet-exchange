@@ -9,6 +9,7 @@ import {
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 type ErrorCallback = (error: FirebaseError) => void;
 
@@ -23,6 +24,21 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 export function initiateEmailSignUp(authInstance: Auth, email: string, password: string, onError?: ErrorCallback): void {
   // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
   createUserWithEmailAndPassword(authInstance, email, password)
+    .then(userCredential => {
+      // User created successfully, now create their document in Firestore.
+      const user = userCredential.user;
+      const db = getFirestore(authInstance.app);
+      const userDocRef = doc(db, "users", user.uid);
+      
+      // Set initial user data. This is a non-blocking operation.
+      setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        role: 'user', // Default role
+        walletBalance: 0, // Default balance
+        createdAt: new Date().toISOString(),
+      });
+    })
     .catch((error: FirebaseError) => {
         if (onError) {
             onError(error);
