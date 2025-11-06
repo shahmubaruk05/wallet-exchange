@@ -48,8 +48,9 @@ const UserTransactionsPage = () => {
   const { data: userTransactions, isLoading } = useCollection<Transaction>(userTransactionsQuery);
   
   const getWithdrawalCurrency = (tx: Transaction) => {
-    if (tx.transactionType === 'CARD_TOP_UP') return 'USD';
-    if (tx.transactionType === 'ADD_FUNDS') return 'BDT';
+    if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance') {
+      return 'USD';
+    }
     return 'BDT';
   }
 
@@ -126,5 +127,3 @@ const UserTransactionsPage = () => {
 };
 
 export default UserTransactionsPage;
-
-    

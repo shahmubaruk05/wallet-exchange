@@ -230,5 +230,3 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
 };
 
 export default UserDetailsPage;
-
-    

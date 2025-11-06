@@ -82,13 +82,24 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   };
 
   const handleStatusUpdate = async (newStatus: TransactionStatus) => {
-    if (!firestore) return;
+    if (!firestore || tx.status === newStatus) return;
 
     const transactionRef = doc(firestore, `users/${tx.userId}/transactions/${tx.id}`);
     const targetUserRef = doc(firestore, `users/${tx.userId}`);
 
     try {
         await runTransaction(firestore, async (firestoreTransaction) => {
+            // Check if the transaction has already been processed to prevent double-crediting
+            const currentTxDoc = await firestoreTransaction.get(transactionRef);
+            if (currentTxDoc.exists() && currentTxDoc.data().status === 'Completed' && newStatus === 'Completed') {
+                // If it's already completed, just update the note and don't touch the balance.
+                 firestoreTransaction.update(transactionRef, {
+                    adminNote: adminNote,
+                    updatedAt: serverTimestamp(),
+                });
+                return;
+            }
+
             // 1. Update the transaction status and admin note
             firestoreTransaction.update(transactionRef, {
                 status: newStatus,
@@ -98,9 +109,12 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
 
             // 2. If completing an "ADD_FUNDS" transaction, update the user's wallet balance
             if (tx.transactionType === 'ADD_FUNDS' && newStatus === 'Completed') {
-                firestoreTransaction.update(targetUserRef, {
-                    walletBalance: increment(tx.receivedAmount)
-                });
+                 // Check if it was previously not completed to avoid double increment
+                if (currentTxDoc.exists() && currentTxDoc.data().status !== 'Completed') {
+                    firestoreTransaction.update(targetUserRef, {
+                        walletBalance: increment(tx.receivedAmount)
+                    });
+                }
             }
         });
 
@@ -246,5 +260,3 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
-
-    
