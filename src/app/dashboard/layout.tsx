@@ -12,13 +12,13 @@ import {
   SidebarInset,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, History, User, LogOut, CreditCard } from "lucide-react";
+import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import AuthRedirect from "@/components/auth/AuthRedirect";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
+import { doc } from "firebase/firestore";
 
 export default function DashboardLayout({
   children,
@@ -28,6 +28,14 @@ export default function DashboardLayout({
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc(userDocRef);
 
   const handleSignOut = async () => {
     if (auth) {
@@ -41,6 +49,8 @@ export default function DashboardLayout({
     return email.charAt(0).toUpperCase();
   }
 
+  const walletBalance = (userData as any)?.walletBalance ?? 0;
+
   return (
     <SidebarProvider>
       <AuthRedirect to="/login" condition={user => !user}>
@@ -53,6 +63,14 @@ export default function DashboardLayout({
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
+                  <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Add Funds">
+                      <Link href="/dashboard/add-funds">
+                      <Landmark />
+                      <span>Add Funds</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Exchange">
                       <Link href="/dashboard/exchange">
@@ -80,17 +98,25 @@ export default function DashboardLayout({
               </SidebarMenu>
             </SidebarContent>
              <SidebarFooter>
-                <div className="flex items-center gap-3 p-2">
-                    <Avatar>
-                        <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col text-sm overflow-hidden">
-                        <span className="font-medium truncate">{user?.displayName || 'User'}</span>
-                        <span className="text-muted-foreground truncate text-xs">{user?.email}</span>
+                <div className="p-2 space-y-2">
+                    <div className="p-2 rounded-lg bg-sidebar-accent">
+                        <div className="text-xs text-sidebar-accent-foreground/80">Wallet Balance</div>
+                        <div className="text-lg font-bold text-sidebar-accent-foreground">
+                            {walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'BDT' })}
+                        </div>
                     </div>
-                     <Button onClick={handleSignOut} variant="ghost" size="icon" className="ml-auto" aria-label="Sign Out">
-                        <LogOut className="h-5 w-5"/>
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Avatar>
+                            <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col text-sm overflow-hidden">
+                            <span className="font-medium truncate">{user?.displayName || 'User'}</span>
+                            <span className="text-muted-foreground truncate text-xs">{user?.email}</span>
+                        </div>
+                        <Button onClick={handleSignOut} variant="ghost" size="icon" className="ml-auto" aria-label="Sign Out">
+                            <LogOut className="h-5 w-5"/>
+                        </Button>
+                    </div>
                 </div>
             </SidebarFooter>
         </Sidebar>

@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { Landmark } from 'lucide-react';
 
 type PaymentIconProps = {
   id: string;
@@ -99,6 +100,8 @@ const PaymentIcon: FC<PaymentIconProps> = ({ id, className = 'w-6 h-6' }) => {
           />
         </svg>
       );
+    case 'wallet':
+        return <Landmark className={className} />;
     default:
       return (
         <svg

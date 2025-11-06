@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
-import { Loader2, Search, DollarSign, ArrowLeft } from "lucide-react";
+import { Loader2, Search, DollarSign, ArrowLeft, Landmark } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,7 +21,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Transaction } from "@/lib/data";
+import type { Transaction, User } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import PaymentIcon from "@/components/PaymentIcons";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
@@ -55,7 +55,7 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
     () => (firestore ? doc(firestore, "users", userId) : null),
     [firestore, userId]
   );
-  const { data: userData, isLoading: isUserLoading } = useDoc(userRef);
+  const { data: userData, isLoading: isUserLoading } = useDoc<User>(userRef);
 
   const transactionsRef = useMemoFirebase(
     () =>
@@ -99,6 +99,12 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
   }
   
   const fullName = [userData.firstName, userData.lastName].filter(Boolean).join(' ');
+  
+  const getWithdrawalCurrency = (tx: Transaction) => {
+    if (tx.transactionType === 'CARD_TOP_UP') return 'USD';
+    if (tx.transactionType === 'ADD_FUNDS') return 'BDT';
+    return 'BDT';
+  }
 
 
   return (
@@ -124,6 +130,10 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
               <Badge variant={userData.role === 'admin' ? 'destructive' : 'secondary'}>{userData.role || 'user'}</Badge>
             </CardHeader>
              <CardContent>
+                <div className="p-4 rounded-lg bg-muted">
+                    <div className="text-sm text-muted-foreground">Wallet Balance</div>
+                    <div className="text-2xl font-bold">{(userData.walletBalance ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'BDT' })}</div>
+                </div>
                 <UserDetailsForm userData={userData} userId={userId} />
              </CardContent>
           </Card>
@@ -186,6 +196,8 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
                             <div className="flex items-center gap-2">
                               {tx.transactionType === "CARD_TOP_UP" ? (
                                 <DollarSign className="h-5 w-5 text-primary" />
+                              ) : tx.transactionType === 'ADD_FUNDS' ? (
+                                <Landmark className="h-5 w-5 text-primary" />
                               ) : (
                                 <PaymentIcon
                                   id={tx.withdrawalMethod.toLowerCase()}
@@ -199,9 +211,7 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
                             <div className="font-mono">
                               {tx.amount.toFixed(2)} {tx.currency} &rarr;{" "}
                               {tx.receivedAmount.toFixed(2)}{" "}
-                              {tx.transactionType === "CARD_TOP_UP"
-                                ? "USD"
-                                : "BDT"}
+                              {getWithdrawalCurrency(tx)}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">

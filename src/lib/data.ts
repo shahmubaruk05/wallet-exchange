@@ -3,7 +3,7 @@ export type PaymentMethod = {
   id: string;
   name: string;
   currency: "BDT" | "USD" | "VIRTUAL";
-  type: "mobile" | "e-wallet" | "virtual-card";
+  type: "mobile" | "e-wallet" | "virtual-card" | "wallet";
 };
 
 export const paymentMethods: PaymentMethod[] = [
@@ -12,6 +12,7 @@ export const paymentMethods: PaymentMethod[] = [
   { id: "paypal", name: "PayPal", currency: "USD", type: "e-wallet" },
   { id: "payoneer", name: "Payoneer", currency: "USD", type: "e-wallet" },
   { id: "wise", name: "Wise", currency: "USD", type: "e-wallet" },
+  { id: "wallet", name: "Wallet Balance", currency: "BDT", type: "wallet" },
   { id: "virtual_card_top_up", name: "Virtual Card Top Up", currency: "USD", type: "virtual-card"},
 ];
 
@@ -22,7 +23,7 @@ export let exchangeRates = {
 };
 
 export type TransactionStatus = "Processing" | "Paid" | "Completed" | "Pending" | "Cancelled";
-export type TransactionType = "EXCHANGE" | "CARD_TOP_UP";
+export type TransactionType = "EXCHANGE" | "CARD_TOP_UP" | "ADD_FUNDS";
 
 
 // This type should align with the Transaction entity in backend.json
@@ -101,4 +102,14 @@ export type ExchangeLimit = {
     toMethod: string;
     minAmount: number;
     maxAmount: number;
+}
+
+export type User = {
+  id: string;
+  email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: 'admin' | 'user';
+  walletBalance?: number;
 }

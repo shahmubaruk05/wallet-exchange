@@ -18,7 +18,7 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Transaction } from "@/lib/data";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
-import { DollarSign } from 'lucide-react';
+import { DollarSign, Landmark } from 'lucide-react';
 
 const getStatusVariant = (status: Transaction['status']) => {
   switch (status) {
@@ -47,6 +47,12 @@ const UserTransactionsPage = () => {
 
   const { data: userTransactions, isLoading } = useCollection<Transaction>(userTransactionsQuery);
   
+  const getWithdrawalCurrency = (tx: Transaction) => {
+    if (tx.transactionType === 'CARD_TOP_UP') return 'USD';
+    if (tx.transactionType === 'ADD_FUNDS') return 'BDT';
+    return 'BDT';
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Your Transactions</h1>
@@ -90,6 +96,8 @@ const UserTransactionsPage = () => {
                        <div className="flex items-center gap-2">
                         {tx.transactionType === 'CARD_TOP_UP' ? (
                           <DollarSign className="h-5 w-5 text-primary" />
+                        ) : tx.transactionType === 'ADD_FUNDS' ? (
+                          <Landmark className="h-5 w-5 text-primary" />
                         ) : (
                           <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
                         )}
@@ -100,7 +108,7 @@ const UserTransactionsPage = () => {
                       <div className="font-mono">
                         {tx.amount.toFixed(2)} {tx.currency} &rarr;{' '}
                         {tx.receivedAmount.toFixed(2)}{' '}
-                        {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : 'BDT'}
+                        {getWithdrawalCurrency(tx)}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">

@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import type { User } from "@/lib/data";
 
 const formSchema = z.object({
   firstName: z.string().optional(),
@@ -32,19 +33,12 @@ const formSchema = z.object({
   username: z.string().optional(),
   email: z.string().email("Invalid email address."),
   role: z.enum(["admin", "user"]),
+  walletBalance: z.coerce.number().optional(),
 });
 
-type UserData = {
-  id: string;
-  email: string;
-  username?: string;
-  firstName?: string;
-  lastName?: string;
-  role?: "admin" | "user";
-};
 
 interface UserDetailsFormProps {
-  userData: UserData;
+  userData: User;
   userId: string;
 }
 
@@ -60,6 +54,7 @@ export function UserDetailsForm({ userData, userId }: UserDetailsFormProps) {
       username: userData.username || "",
       email: userData.email,
       role: userData.role || "user",
+      walletBalance: userData.walletBalance || 0,
     },
   });
   
@@ -80,7 +75,7 @@ export function UserDetailsForm({ userData, userId }: UserDetailsFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-6 mt-6 border-t">
         <div className="grid grid-cols-2 gap-4">
             <FormField
             control={form.control}
@@ -131,6 +126,19 @@ export function UserDetailsForm({ userData, userId }: UserDetailsFormProps) {
               <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input placeholder="user@example.com" {...field} disabled />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="walletBalance"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Wallet Balance (BDT)</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

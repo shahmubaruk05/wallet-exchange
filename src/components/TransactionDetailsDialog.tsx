@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { Transaction, TransactionStatus } from '@/lib/data';
+import type { Transaction, TransactionStatus, User } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -19,11 +19,11 @@ import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, DollarSign } from 'lucide-react';
+import { Info, DollarSign, Landmark } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -81,25 +81,45 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     }
   };
 
-  const handleStatusUpdate = (newStatus: TransactionStatus) => {
+  const handleStatusUpdate = async (newStatus: TransactionStatus) => {
     if (!firestore) return;
 
     const transactionRef = doc(firestore, `users/${tx.userId}/transactions/${tx.id}`);
-    
-    updateDocumentNonBlocking(transactionRef, {
-      status: newStatus,
-      adminNote: adminNote,
-      updatedAt: serverTimestamp(),
-    });
+    const targetUserRef = doc(firestore, `users/${tx.userId}`);
 
-    toast({
-      title: "Update Successful",
-      description: `Transaction status changed to ${newStatus}.`,
-      className: "bg-accent text-accent-foreground",
-    });
+    try {
+        await runTransaction(firestore, async (firestoreTransaction) => {
+            // 1. Update the transaction status and admin note
+            firestoreTransaction.update(transactionRef, {
+                status: newStatus,
+                adminNote: adminNote,
+                updatedAt: serverTimestamp(),
+            });
 
-    setIsOpen(false);
-  };
+            // 2. If completing an "ADD_FUNDS" transaction, update the user's wallet balance
+            if (tx.transactionType === 'ADD_FUNDS' && newStatus === 'Completed') {
+                firestoreTransaction.update(targetUserRef, {
+                    walletBalance: increment(tx.receivedAmount)
+                });
+            }
+        });
+
+        toast({
+            title: "Update Successful",
+            description: `Transaction status changed to ${newStatus}.`,
+            className: "bg-accent text-accent-foreground",
+        });
+
+        setIsOpen(false);
+    } catch (error) {
+        console.error("Transaction update failed: ", error);
+        toast({
+            title: "Update Failed",
+            description: "Could not update the transaction. Please try again.",
+            variant: "destructive",
+        });
+    }
+};
 
 
   const DetailRow = ({ label, value, className }: { label: string; value: ReactNode, className?: string }) => (
@@ -151,10 +171,14 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                     label="You Received" 
                     value={
                         <div className="flex items-center gap-2 justify-end">
-                            <span>{tx.receivedAmount.toFixed(2)} {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : 'BDT'}</span>
+                            <span>{tx.receivedAmount.toFixed(2)} {
+                              tx.transactionType === 'CARD_TOP_UP' ? 'USD' : (tx.withdrawalMethod === 'Wallet Balance' ? 'BDT' : 'BDT')
+                            }</span>
                             {tx.transactionType === 'CARD_TOP_UP' ? (
                               <DollarSign className="h-5 w-5 text-primary" />
-                            ) : (
+                            ) : tx.withdrawalMethod === 'Wallet Balance' ? (
+                                <Landmark className="h-5 w-5 text-primary"/>
+                            ): (
                               <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
                             )}
                         </div>

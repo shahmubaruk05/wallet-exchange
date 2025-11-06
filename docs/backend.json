@@ -27,6 +27,10 @@
         "lastName": {
           "type": "string",
           "description": "The last name of the user."
+        },
+        "walletBalance": {
+          "type": "number",
+          "description": "The user's current wallet balance in BDT."
         }
       },
       "required": [
@@ -75,7 +79,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction made by a user. Can be an exchange or a card top-up.",
+      "description": "Represents a transaction made by a user. Can be an exchange, a card top-up, or adding funds.",
       "properties": {
         "id": {
           "type": "string",
@@ -137,7 +141,7 @@
         "transactionType": {
           "type": "string",
           "description": "The type of transaction.",
-          "enum": ["EXCHANGE", "CARD_TOP_UP"]
+          "enum": ["EXCHANGE", "CARD_TOP_UP", "ADD_FUNDS"]
         },
         "topUpDetails": {
           "type": "object",
@@ -368,6 +372,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet Exchange application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place."
+    "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet Exchange application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups and fund deposits are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place. Each user document also contains a `walletBalance` field to track their funds."
   }
 }
