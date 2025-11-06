@@ -3,38 +3,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 Admin চিনে রাখার জন্য একটা helper ফাংশন
+    // 👑 Admin চিনার helper
     function isAdmin() {
       return request.auth != null &&
         (
-          request.auth.token.email == "shahmubaruk05@gmail.com" ||  // তোমার admin ইমেইল
-          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"       // তোমার UID (স্ক্রিনশটে যেটা ছিল)
+          request.auth.token.email == "shahmubaruk05@gmail.com" || // admin email
+          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"      // admin UID
         );
     }
 
-    // 🔐 সাধারণ user-এর basic access (নিজের ডেটা)
+    // 🔐 User profile
     match /users/{userId} {
-      // নিজের প্রোফাইল read/update করতে পারবে
+      // নিজের প্রোফাইল দেখা / আপডেট
       allow read, update: if request.auth != null && request.auth.uid == userId;
-      // sign up করলে create
+      // সাইন আপ এর সময় create
       allow create: if request.auth != null;
     }
 
-    // প্রত্যেক user-এর transactions subcollection
+    // 🔐 User transactions (subcollection)
     match /users/{userId}/transactions/{txId} {
-      // user শুধু নিজের transaction গুলো দেখতে/বানাতে পারবে
+      // ইউজার শুধু নিজের ট্রান্সাকশন দেখতে/তৈরি করতে পারবে
       allow read, create: if request.auth != null && request.auth.uid == userId;
       // status change ইত্যাদি শুধু admin
       allow update, delete: if isAdmin();
     }
 
-    // যদি root level এ "transactions" collection থাকে (যেমন summary/stats এর জন্য)
+    // 🔐 Root-level transactions summary (যদি ব্যবহার করো)
     match /transactions/{txId} {
       allow read, write: if isAdmin();
     }
 
-    // 🌐 অন্য সব ডকুমেন্টের জন্য ডিফল্ট rule:
-    // শুধু admin সবকিছু read/write করতে পারবে
+    // 🌍 Exchange rates – এটা সব logged-in user read করতে পারবে
+    match /exchange_rates/{rateId} {
+      // Dashboard-এ rate দেখানোর জন্য
+      allow read: if request.auth != null;
+      // Rates update করবে শুধু admin
+      allow write: if isAdmin();
+    }
+
+    // (ইচ্ছা করলে এক্সচেঞ্জ লিমিটস ইত্যাদিও এখানে দিতে পারো)
+    // match /exchange_limits/{docId} {
+    //   allow read: if request.auth != null;
+    //   allow write: if isAdmin();
+    // }
+
+    // 🌐 ডিফল্ট: বাকী সবকিছু শুধু admin
     match /{document=**} {
       allow read, write: if isAdmin();
     }
