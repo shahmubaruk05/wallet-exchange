@@ -15,9 +15,10 @@ service cloud.firestore {
     // Secure user profiles.
     match /users/{userId} {
       // An authenticated user can read/write their own document.
-      // An admin can read/write/list any user document.
+      // An admin can read/write any user document.
       allow read, write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      allow list: if isAdmin();
+      // Any signed-in user can list/query users (e.g., to find a recipient for a transfer).
+      allow list: if isSignedIn();
     }
 
     // Secure transactions for each user.
