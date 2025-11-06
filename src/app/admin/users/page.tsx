@@ -19,51 +19,83 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useFirestore } from "@/firebase";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
+type AdminUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  walletUsd: number;
+  createdAt?: string | null;
+};
 
 const AdminUsersPage = () => {
   const firestore = useFirestore();
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!firestore) return;
-      setIsLoading(true);
+    if (!firestore) return;
+
+    async function loadUsers() {
       try {
-        const usersQuery = query(collection(firestore, "users"), orderBy("email"));
-        const querySnapshot = await getDocs(usersQuery);
-        const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setAllUsers(users);
-      } catch (error) {
-        console.error("Error fetching users:", error);
+        setLoading(true);
+        setError(null);
+
+        const snap = await getDocs(collection(firestore, "users"));
+
+        const result: AdminUserRow[] = [];
+        snap.forEach((doc) => {
+          const data = doc.data() || {};
+
+          result.push({
+            id: doc.id,
+            name: (data.displayName || data.name || data.firstName || "(No name)") as string,
+            email: (data.email || "") as string,
+            walletUsd:
+              (data.walletBalance ??
+                data.walletBalanceUsd ??
+                data.walletUSD ??
+                data.balanceUSD ??
+                0) as number,
+            createdAt: data.createdAt
+              ? data.createdAt.toDate
+                ? data.createdAt.toDate().toISOString()
+                : String(data.createdAt)
+              : null,
+          });
+        });
+        
+        setUsers(result);
+      } catch (e: any) {
+        console.error("Error loading admin users:", e);
+        setError("Failed to load users from Firestore.");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
-    };
-    fetchUsers();
+    }
+
+    loadUsers();
   }, [firestore]);
 
-
   const filteredUsers = useMemo(() => {
-    if (!allUsers) return [];
-    return allUsers.filter((user) => {
+    if (!users) return [];
+    return users.filter((user) => {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return (
         user.email.toLowerCase().includes(term) ||
-        (user.firstName && user.firstName.toLowerCase().includes(term)) ||
-        (user.lastName && user.lastName.toLowerCase().includes(term)) ||
+        (user.name && user.name.toLowerCase().includes(term)) ||
         user.id.toLowerCase().includes(term)
       );
     });
-  }, [allUsers, searchTerm]);
+  }, [users, searchTerm]);
 
 
   return (
@@ -96,7 +128,7 @@ const AdminUsersPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && (
+              {loading && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center">
                     <div className="flex justify-center items-center p-4">
@@ -106,23 +138,30 @@ const AdminUsersPage = () => {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && (!filteredUsers || filteredUsers.length === 0) && (
+              {!loading && error && (
+                 <TableRow>
+                  <TableCell colSpan={4} className="text-center text-destructive">
+                    {error}
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && !error && filteredUsers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center">
                     No users found.
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading &&
+              {!loading && !error &&
                 filteredUsers?.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
-                        <div>{user.firstName || ''} {user.lastName || ''}</div>
+                        <div>{user.name}</div>
                         <div className="text-xs text-muted-foreground font-mono">{user.id}</div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell className="font-mono">
-                      ${(user.walletBalance ?? 0).toFixed(2)}
+                      ${user.walletUsd.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild variant="outline" size="sm">
