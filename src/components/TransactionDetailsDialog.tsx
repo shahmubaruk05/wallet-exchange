@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { Transaction, TransactionStatus, User } from '@/lib/data';
+import type { Transaction, TransactionStatus, User, CardApplication } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -49,6 +49,13 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   }, [firestore, user]);
 
   const { data: userData } = useDoc(userDocRef);
+
+  const cardApplicationRef = useMemoFirebase(() => {
+    if (!firestore || tx.transactionType !== 'CARD_TOP_UP') return null;
+    return doc(firestore, 'card_applications', tx.userId);
+  }, [firestore, tx.userId, tx.transactionType]);
+
+  const { data: cardApplicationData } = useDoc<CardApplication>(cardApplicationRef);
   
   // Determine if the user is an admin based on their role AND the current path.
   // The controls should only ever be visible on the /admin path.
@@ -173,6 +180,13 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     }
     return 'BDT';
   }
+  
+  const getToAccountDisplay = () => {
+    if (tx.transactionType === 'CARD_TOP_UP' && cardApplicationData?.mercuryCardLast4) {
+      return `Card Top Up (•••• ${cardApplicationData.mercuryCardLast4})`;
+    }
+    return tx.receivingAccountId;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -229,7 +243,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
             <div className="pt-2 mt-2">
               <DetailRow label="From Account" value={tx.sendingAccountId} />
               <DetailRow label="Gateway Trx ID" value={tx.transactionId} copyValue={tx.transactionId} copyKey="gatewayTrxId"/>
-              <DetailRow label="To Account" value={tx.receivingAccountId} />
+              <DetailRow label="To Account" value={getToAccountDisplay()} />
             </div>
              {tx.adminNote && (
                 <div className="pt-2 mt-2">
