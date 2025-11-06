@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, collection, where, query, getDocs, DocumentSnapshot, DocumentData, getDoc } from "firebase/firestore";
+import { doc, runTransaction, collection, where, query, getDocs, DocumentData, getDoc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Loader2, ArrowRight } from "lucide-react";
 import Link from 'next/link';
@@ -77,34 +77,35 @@ export default function TransferForm() {
     setIsSubmitting(true);
 
     try {
-      let recipientDoc: DocumentSnapshot<DocumentData> | null = null;
-      
-      // 1. Try to get user by ID directly
-      const recipientRefById = doc(firestore, "users", values.recipientIdentifier);
-      const docSnapById = await getDoc(recipientRefById);
+      let recipientDoc: DocumentData | null = null;
+      let recipientId: string | null = null;
 
-      if (docSnapById.exists()) {
-        recipientDoc = docSnapById;
+      // 1. Try to get user by ID directly
+      const docRef = doc(firestore, "users", values.recipientIdentifier);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        recipientDoc = docSnap.data();
+        recipientId = docSnap.id;
       } else {
         // 2. If not found by ID, try to get user by email
-        const recipientQuery = query(collection(firestore, "users"), where("email", "==", values.recipientIdentifier));
-        const recipientSnapshot = await getDocs(recipientQuery);
-
-        if (!recipientSnapshot.empty) {
-          recipientDoc = recipientSnapshot.docs[0];
+        const q = query(collection(firestore, "users"), where("email", "==", values.recipientIdentifier));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          recipientDoc = doc.data();
+          recipientId = doc.id;
         }
       }
 
-
-      if (!recipientDoc) {
+      if (!recipientDoc || !recipientId) {
         toast({ title: "Recipient Not Found", description: "No user found with that email or ID.", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
-
-      const recipientData = recipientDoc.data() as User;
-      const recipientId = recipientDoc.id;
       
+      const recipientData = recipientDoc as User;
+
       // Final self-transfer check with resolved ID/email
       if (recipientId === user.uid) {
         toast({ title: "Invalid Recipient", description: "You cannot transfer funds to yourself.", variant: "destructive" });
@@ -114,7 +115,7 @@ export default function TransferForm() {
 
       await runTransaction(firestore, async (transaction) => {
         const senderRef = doc(firestore, "users", user.uid);
-        const recipientRef = doc(firestore, "users", recipientId);
+        const recipientRef = doc(firestore, "users", recipientId!);
         
         const senderDoc = await transaction.get(senderRef);
         if (!senderDoc.exists() || (senderDoc.data().walletBalance ?? 0) < values.amount) {
@@ -125,7 +126,7 @@ export default function TransferForm() {
         transaction.update(senderRef, { walletBalance: (senderDoc.data().walletBalance ?? 0) - values.amount });
 
         // Increment recipient's balance
-        const recipientCurrentBalance = (recipientDoc?.data()?.walletBalance ?? 0);
+        const recipientCurrentBalance = (recipientData.walletBalance ?? 0);
         transaction.update(recipientRef, { walletBalance: recipientCurrentBalance + values.amount });
 
         const now = new Date().toISOString();
@@ -153,7 +154,7 @@ export default function TransferForm() {
         });
         
         // Create recipient's transaction log
-        const recipientTxRef = doc(collection(firestore, `users/${recipientId}/transactions`));
+        const recipientTxRef = doc(collection(firestore, `users/${recipientId!}/transactions`));
         transaction.set(recipientTxRef, {
             userId: recipientId,
             transactionType: 'WALLET_TRANSFER',
