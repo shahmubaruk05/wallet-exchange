@@ -6,6 +6,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  updateProfile,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
@@ -21,12 +22,24 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 }
 
 /** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string, onError?: ErrorCallback): void {
+export function initiateEmailSignUp(
+    authInstance: Auth,
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone: string,
+    onError?: ErrorCallback
+): void {
   // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
   createUserWithEmailAndPassword(authInstance, email, password)
-    .then(userCredential => {
+    .then(async (userCredential) => {
       // User created successfully, now create their document in Firestore.
       const user = userCredential.user;
+
+      // Update Firebase Auth profile
+      await updateProfile(user, { displayName: `${firstName} ${lastName}` });
+      
       const db = getFirestore(authInstance.app);
       const userDocRef = doc(db, "users", user.uid);
       
@@ -34,6 +47,10 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
       setDoc(userDocRef, {
         uid: user.uid,
         email: user.email,
+        firstName,
+        lastName,
+        username: `${firstName} ${lastName}`,
+        phone,
         role: 'user', // Default role
         walletBalance: 0, // Default balance
         createdAt: new Date().toISOString(),
@@ -48,6 +65,7 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
     });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
+
 
 /** Initiate email/password sign-in (non-blocking). */
 export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {

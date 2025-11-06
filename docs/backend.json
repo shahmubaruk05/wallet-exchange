@@ -28,6 +28,10 @@
           "type": "string",
           "description": "The last name of the user."
         },
+        "phone": {
+            "type": "string",
+            "description": "The user's phone number."
+        },
         "walletBalance": {
           "type": "number",
           "description": "The user's current wallet balance in USD."
@@ -35,7 +39,6 @@
       },
       "required": [
         "id",
-        "username",
         "email"
       ]
     },
