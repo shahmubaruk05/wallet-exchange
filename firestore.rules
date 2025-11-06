@@ -14,11 +14,12 @@ service cloud.firestore {
 
     // Secure user profiles.
     match /users/{userId} {
-      // An authenticated user can read/write their own document.
-      // An admin can read/write any user document.
-      allow read, write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      // An admin can list/query users.
-      allow list, get: if isAdmin();
+      // A user can update their own document. An admin can update any user document.
+      allow update, write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      // A user can read their own document. An admin can read any user document.
+      allow get: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      // An admin can list all users.
+      allow list: if isAdmin();
     }
 
     // Secure transactions for each user.
