@@ -321,7 +321,7 @@ const AdminDashboard = () => {
                             </Avatar>
                            <div className="flex flex-col">
                              <span className="font-semibold">{usersMap[tx.userId]?.username || usersMap[tx.userId]?.email || 'Unknown User'}</span>
-                             <span className="text-xs text-muted-foreground">{usersMap[tx.userId]?.username ? usersMap[tx.userId]?.email : ''}</span>
+                             <span className="text-xs text-muted-foreground">{usersMap[tx.userId]?.email}</span>
                            </div>
                         </div>
                       </TableCell>
@@ -439,5 +439,3 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
-
-    
