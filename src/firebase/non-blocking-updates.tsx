@@ -97,18 +97,17 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
  */
 export function runTransactionNonBlocking(firestore: Firestore, updateFunction: (transaction: any) => Promise<any>) {
     runTransaction(firestore, updateFunction).catch(error => {
-        // Generic error handling for transactions.
-        // For permission errors within a transaction, they are often caught by the individual
-        // operations' error handlers if they are non-blocking. If the transaction itself
-        // fails due to permissions (e.g., contention or initial read failures), this will catch it.
-        // A more specific error might require inspecting the error object.
-        console.error("Transaction failed:", error);
+        // This will catch transaction-level failures (e.g., contention, initial read failures).
+        // For specific permission errors within the transaction, individual write operations
+        // inside the `updateFunction` should ideally also be wrapped to provide more context,
+        // but this top-level catch provides a fallback.
+        console.error("Firebase Transaction failed:", error);
          errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
-                path: 'transaction', // Path is not specific to one doc in a transaction
+                path: 'transaction<unknown>', // Path is not specific to one doc in a transaction
                 operation: 'write',
-                requestResourceData: { details: 'Transaction failed, see console for details.' }
+                requestResourceData: { details: 'Transaction failed. The error may be due to permissions on one of the documents involved, or a network/contention issue. Check console for details.' }
             })
         );
     });
