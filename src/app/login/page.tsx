@@ -93,6 +93,14 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
+                 <div className="flex items-center justify-end">
+                    <Link
+                        href="/forgot-password"
+                        className="text-sm font-medium text-primary hover:underline"
+                    >
+                        Forgot password?
+                    </Link>
+                </div>
                 <Button type="submit" className="w-full">
                   Login
                 </Button>
