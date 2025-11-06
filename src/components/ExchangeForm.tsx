@@ -33,6 +33,7 @@ import { collection } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 
 type Step = "form" | "confirm" | "status";
+type LastEdited = "send" | "receive";
 
 export default function ExchangeForm() {
   const [step, setStep] = useState<Step>("form");
@@ -44,6 +45,7 @@ export default function ExchangeForm() {
   const [transactionFee, setTransactionFee] = useState<number>(0);
   const [rateText, setRateText] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [lastEdited, setLastEdited] = useState<LastEdited>("send");
 
   // New state for confirmation form
   const [sendingAccountId, setSendingAccountId] = useState('');
@@ -101,58 +103,85 @@ export default function ExchangeForm() {
   useEffect(() => {
     const calculateExchange = () => {
       setIsCalculating(true);
-      const amount = parseFloat(sendAmount);
-      if (isNaN(amount) || amount <= 0) {
-        setReceiveAmount("");
-        setTransactionFee(0);
-        setRateText("");
-        setIsCalculating(false);
-        return;
-      }
 
-      let fee = 0;
       const feePercentages: { [key: string]: number } = {
-        bkash: 0.0185,    // 1.85%
-        nagad: 0.014,     // 1.4%
-        wise: 0.029,      // 2.9%
-        payoneer: 0.01,   // 1%
-        paypal: 0.05, // 5%
+        bkash: 0.0185,
+        nagad: 0.014,
+        wise: 0.029,
+        payoneer: 0.01,
+        paypal: 0.05,
       };
+      const feePercentage = feePercentages[sendMethod.id] || 0;
 
-      if (sendMethod.id in feePercentages) {
-        fee = amount * feePercentages[sendMethod.id];
-      }
-      
-      setTransactionFee(fee);
-      
-      const amountAfterFee = amount - fee;
-
-      let result = 0;
       let rateString = "";
       if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
-        result = amountAfterFee * exchangeRates.USD_TO_BDT;
         rateString = `1 USD = ${exchangeRates.USD_TO_BDT} BDT`;
-      } else if (
-        sendMethod.currency === "BDT" &&
-        receiveMethod.currency === "USD"
-      ) {
-        result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
+      } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
         rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
       } else {
-        result = amountAfterFee; // Same currency
         rateString = `1 ${sendMethod.currency} = 1 ${receiveMethod.currency}`;
       }
 
-      // Simulate calculation delay
-      setTimeout(() => {
-        setReceiveAmount(result.toFixed(2));
-        setRateText(rateString);
-        setIsCalculating(false);
-      }, 300);
+      if (lastEdited === 'send') {
+        const amount = parseFloat(sendAmount);
+        if (isNaN(amount) || amount <= 0) {
+          setReceiveAmount("");
+          setTransactionFee(0);
+        } else {
+          const fee = amount * feePercentage;
+          setTransactionFee(fee);
+          const amountAfterFee = amount - fee;
+
+          let result = 0;
+          if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
+            result = amountAfterFee * exchangeRates.USD_TO_BDT;
+          } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
+            result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
+          } else {
+            result = amountAfterFee;
+          }
+          setReceiveAmount(result > 0 ? result.toFixed(2) : "");
+        }
+      } else { // lastEdited === 'receive'
+        const amount = parseFloat(receiveAmount);
+        if (isNaN(amount) || amount <= 0) {
+          setSendAmount("");
+          setTransactionFee(0);
+        } else {
+          let amountBeforeFee = 0;
+          if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
+            amountBeforeFee = amount / exchangeRates.USD_TO_BDT;
+          } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
+            amountBeforeFee = amount * exchangeRates.BDT_TO_USD_RATE;
+          } else {
+            amountBeforeFee = amount;
+          }
+          
+          const originalAmount = amountBeforeFee / (1 - feePercentage);
+          const fee = originalAmount * feePercentage;
+          setTransactionFee(fee);
+          setSendAmount(originalAmount > 0 ? originalAmount.toFixed(2) : "");
+        }
+      }
+
+      setRateText(rateString);
+      setIsCalculating(false);
     };
 
-    calculateExchange();
-  }, [sendAmount, sendMethod, receiveMethod, exchangeRates]);
+    const debounce = setTimeout(calculateExchange, 300);
+    return () => clearTimeout(debounce);
+  }, [sendAmount, receiveAmount, sendMethod, receiveMethod, exchangeRates, lastEdited]);
+  
+  const handleSendAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSendAmount(e.target.value);
+    setLastEdited('send');
+  };
+
+  const handleReceiveAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReceiveAmount(e.target.value);
+    setLastEdited('receive');
+  };
+
 
   const handleSendMethodChange = (value: string) => {
     if (value === receiveMethodId) {
@@ -252,6 +281,8 @@ export default function ExchangeForm() {
   const startNewTransaction = () => {
     setStep('form');
     setSendAmount('100');
+    setReceiveAmount('');
+    setLastEdited('send');
     setSendMethodId('paypal');
     setReceiveMethodId('bkash');
     setSendingAccountId('');
@@ -308,7 +339,7 @@ export default function ExchangeForm() {
                 id="send-amount"
                 type="number"
                 value={sendAmount}
-                onChange={(e) => setSendAmount(e.target.value)}
+                onChange={handleSendAmountChange}
                 className="h-12 text-lg pr-16"
                 placeholder="0.00"
                 step="0.01"
@@ -316,6 +347,7 @@ export default function ExchangeForm() {
               <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground font-semibold">
                 {sendMethod.currency}
               </span>
+               {isCalculating && lastEdited === 'receive' && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
             </div>
           </div>
 
@@ -372,22 +404,24 @@ export default function ExchangeForm() {
             <div className="relative">
               <Input
                 id="receive-amount"
-                type="text"
+                type="number"
                 value={receiveAmount}
-                readOnly
-                className="h-12 text-lg bg-muted pr-16"
+                onChange={handleReceiveAmountChange}
+                className="h-12 text-lg pr-16"
                 placeholder="0.00"
+                step="0.01"
               />
               <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground font-semibold">
                 {receiveMethod.currency}
               </span>
-              {isCalculating && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
+              {isCalculating && lastEdited === 'send' && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" size="lg">
-            Exchange <ArrowRight className="ml-2 h-4 w-4" />
+          <Button type="submit" className="w-full" size="lg" disabled={isCalculating}>
+             {isCalculating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Exchange"}
+             {!isCalculating && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
         </CardFooter>
       </form>
