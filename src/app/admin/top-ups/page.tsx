@@ -18,9 +18,9 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collectionGroup, query, where, orderBy, getDocs } from "firebase/firestore";
-import type { Transaction, TransactionStatus } from "@/lib/data";
+import { useFirestore } from "@/firebase";
+import { collectionGroup, query, where, orderBy, getDocs, collection } from "firebase/firestore";
+import type { Transaction, TransactionStatus, User } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import { Loader2 } from "lucide-react";
 import PaymentIcon from "@/components/PaymentIcons";
@@ -42,23 +42,36 @@ const getStatusVariant = (status: Transaction["status"]) => {
 const AdminTopUpPage = () => {
   const firestore = useFirestore();
   const [topUps, setTopUps] = useState<Transaction[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const usersMap = useMemo(() => {
+    return users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {} as Record<string, User>);
+  }, [users]);
+
 
   useEffect(() => {
     const fetchTopUps = async () => {
       if (!firestore) return;
       setIsLoading(true);
       
-      const topUpsQuery = query(
-        collectionGroup(firestore, "transactions"),
-        where("transactionType", "==", "CARD_TOP_UP"),
-        orderBy("transactionDate", "desc")
-      );
-
       try {
+        const topUpsQuery = query(
+          collectionGroup(firestore, "transactions"),
+          where("transactionType", "==", "CARD_TOP_UP"),
+          orderBy("transactionDate", "desc")
+        );
         const querySnapshot = await getDocs(topUpsQuery);
         const fetchedTopUps = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
         setTopUps(fetchedTopUps);
+        
+        const usersSnapshot = await getDocs(collection(firestore, "users"));
+        const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        setUsers(usersList);
+
       } catch (error) {
         console.error("Error fetching card top-ups:", error);
       } finally {
@@ -85,7 +98,7 @@ const AdminTopUpPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>User ID</TableHead>
+                <TableHead>User</TableHead>
                 <TableHead>Amount Sent</TableHead>
                 <TableHead>Top Up (USD)</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -116,7 +129,7 @@ const AdminTopUpPage = () => {
                       <TableCell>
                         {format(parseISO(topUp.transactionDate), "PPp")}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{topUp.userId}</TableCell>
+                      <TableCell>{usersMap[topUp.userId]?.username || usersMap[topUp.userId]?.email || 'Unknown'}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <PaymentIcon id={topUp.paymentMethod.toLowerCase()} className="h-5 w-5"/>

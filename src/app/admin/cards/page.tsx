@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Table,
   TableHeader,
@@ -21,11 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   useFirestore,
-  useCollection,
   useMemoFirebase,
 } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import type { CardApplication } from "@/lib/data";
+import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import type { CardApplication, User } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { ManageCardApplicationDialog } from "@/components/ManageCardApplicationDialog";
@@ -45,16 +44,43 @@ const getStatusVariant = (status: CardApplication["status"]) => {
 
 const AdminCardManagementPage = () => {
   const firestore = useFirestore();
-  const applicationsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, "card_applications"),
-      orderBy("appliedAt", "desc")
-    );
+  const [applications, setApplications] = useState<CardApplication[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const usersMap = useMemo(() => {
+    return users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {} as Record<string, User>);
+  }, [users]);
+  
+  useEffect(() => {
+    const fetchAllData = async () => {
+      if (!firestore) return;
+      setIsLoading(true);
+      try {
+        const appsQuery = query(
+          collection(firestore, "card_applications"),
+          orderBy("appliedAt", "desc")
+        );
+        const appsSnapshot = await getDocs(appsQuery);
+        const appsList = appsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CardApplication));
+        setApplications(appsList);
+
+        const usersSnapshot = await getDocs(collection(firestore, "users"));
+        const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        setUsers(usersList);
+
+      } catch (error) {
+        console.error("Error fetching card applications or users:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllData();
   }, [firestore]);
 
-  const { data: applications, isLoading } =
-    useCollection<CardApplication>(applicationsQuery);
 
   return (
     <div className="space-y-6">
@@ -126,3 +152,5 @@ const AdminCardManagementPage = () => {
 };
 
 export default AdminCardManagementPage;
+
+    

@@ -19,13 +19,15 @@ import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
+import { doc, serverTimestamp, runTransaction, increment, getDoc } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info, DollarSign, Landmark, Copy, Check } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 
 type TransactionWithId = Transaction & { id: string };
 
@@ -41,6 +43,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   const [isOpen, setIsOpen] = useState(false);
   const [adminNote, setAdminNote] = useState(tx.adminNote || '');
   const [copiedStates, setCopiedStates] = useState<{[key: string]: boolean}>({});
+  const [transactionUser, setTransactionUser] = useState<User | null>(null);
   const pathname = usePathname();
 
   const userDocRef = useMemoFirebase(() => {
@@ -57,8 +60,6 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
 
   const { data: cardApplicationData } = useDoc<CardApplication>(cardApplicationRef);
   
-  // Determine if the user is an admin based on their role AND the current path.
-  // The controls should only ever be visible on the /admin path.
   const isAdmin = useMemo(() => {
     const userIsAdmin = (userData as any)?.role === 'admin';
     const onAdminPage = pathname.startsWith('/admin');
@@ -70,8 +71,19 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     if (isOpen) {
       setAdminNote(tx.adminNote || '');
       setCopiedStates({});
+
+      const fetchTransactionUser = async () => {
+          if (!firestore) return;
+          const userRef = doc(firestore, 'users', tx.userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+              setTransactionUser({ id: userSnap.id, ...userSnap.data() } as User);
+          }
+      };
+
+      fetchTransactionUser();
     }
-  }, [isOpen, tx.adminNote]);
+  }, [isOpen, tx.adminNote, tx.userId, firestore]);
 
   const handleCopy = (key: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -106,10 +118,8 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
 
     try {
         await runTransaction(firestore, async (firestoreTransaction) => {
-            // Check if the transaction has already been processed to prevent double-crediting
             const currentTxDoc = await firestoreTransaction.get(transactionRef);
             if (currentTxDoc.exists() && currentTxDoc.data().status === 'Completed' && newStatus === 'Completed') {
-                // If it's already completed, just update the note and don't touch the balance.
                  firestoreTransaction.update(transactionRef, {
                     adminNote: adminNote,
                     updatedAt: serverTimestamp(),
@@ -117,16 +127,13 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                 return;
             }
 
-            // 1. Update the transaction status and admin note
             firestoreTransaction.update(transactionRef, {
                 status: newStatus,
                 adminNote: adminNote,
                 updatedAt: serverTimestamp(),
             });
 
-            // 2. If completing an "ADD_FUNDS" transaction, update the user's wallet balance
             if (tx.transactionType === 'ADD_FUNDS' && newStatus === 'Completed') {
-                 // Check if it was previously not completed to avoid double increment
                 if (currentTxDoc.exists() && currentTxDoc.data().status !== 'Completed') {
                     firestoreTransaction.update(targetUserRef, {
                         walletBalance: increment(tx.receivedAmount)
@@ -187,6 +194,12 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     }
     return tx.receivingAccountId;
   }
+  
+  const getInitials = (email?: string | null, name?: string | null) => {
+    if (name) return name.charAt(0).toUpperCase();
+    if (email) return email.charAt(0).toUpperCase();
+    return 'U';
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -200,12 +213,27 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
         </DialogHeader>
         <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto pr-2">
           <dl>
+            {isAdmin && transactionUser && (
+                 <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">User Details</h3>
+                    <div className="flex items-center gap-3 p-3 rounded-md bg-muted/50">
+                        <Avatar>
+                            <AvatarFallback>
+                                {getInitials(transactionUser.email, transactionUser.username)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                            <span className="font-semibold">{transactionUser.username || 'N/A'}</span>
+                            <span className="text-xs text-muted-foreground">{transactionUser.email}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
             <DetailRow label="Date" value={format(parseISO(tx.transactionDate), 'PPp')} />
             <DetailRow 
               label="Status" 
               value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} 
             />
-             <DetailRow label="User ID" value={tx.userId} copyValue={tx.userId} copyKey="userId"/>
             <div className="pt-2 mt-2 space-y-2">
                 <DetailRow 
                 label="You Sent" 
@@ -298,3 +326,5 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
+
+    

@@ -47,7 +47,7 @@ import {
   doc,
   collectionGroup,
 } from "firebase/firestore";
-import type { Transaction, TransactionStatus } from "@/lib/data";
+import type { Transaction, TransactionStatus, User } from "@/lib/data";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,8 @@ import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Loader2, Search, DollarSign } from "lucide-react";
 import AuthRedirect from "@/components/auth/AuthRedirect";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 
 const getStatusVariant = (status: Transaction["status"]) => {
   switch (status) {
@@ -152,6 +154,7 @@ const AdminLoginPage = () => {
 const AdminDashboard = () => {
   const firestore = useFirestore();
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters State
@@ -159,11 +162,19 @@ const AdminDashboard = () => {
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
+   const usersMap = useMemo(() => {
+    return users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {} as Record<string, User>);
+  }, [users]);
+
   useEffect(() => {
-    const fetchAllTransactions = async () => {
+    const fetchAllData = async () => {
       if (!firestore) return;
       setIsLoading(true);
       try {
+        // Fetch all transactions
         const transactionsQuery = query(
           collectionGroup(firestore, "transactions"),
           orderBy("transactionDate", "desc")
@@ -173,14 +184,19 @@ const AdminDashboard = () => {
           (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
         );
         setAllTransactions(transactions);
+
+        // Fetch all users
+        const usersSnapshot = await getDocs(collection(firestore, "users"));
+        const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        setUsers(usersList);
+
       } catch (error) {
-        console.error("Error fetching all transactions:", error);
-        // Fallback might not be needed if collection group queries are allowed for admin
+        console.error("Error fetching all transactions or users:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchAllTransactions();
+    fetchAllData();
   }, [firestore]);
   
   const filteredTransactions = useMemo(() => {
@@ -189,9 +205,11 @@ const AdminDashboard = () => {
       .filter((tx) => { // Search Filter
         if (!searchTerm) return true;
         const term = searchTerm.toLowerCase();
+        const user = usersMap[tx.userId];
         return (
-          tx.userId.toLowerCase().includes(term) ||
-          tx.id.toLowerCase().includes(term)
+          tx.id.toLowerCase().includes(term) ||
+          (user && user.email?.toLowerCase().includes(term)) ||
+          (user && user.username?.toLowerCase().includes(term))
         );
       })
       .filter((tx) => { // Status Filter
@@ -212,7 +230,13 @@ const AdminDashboard = () => {
             return true;
         }
       });
-  }, [allTransactions, statusFilter, dateFilter, searchTerm]);
+  }, [allTransactions, statusFilter, dateFilter, searchTerm, usersMap]);
+  
+  const getInitials = (email?: string | null, name?: string | null) => {
+    if (name) return name.charAt(0).toUpperCase();
+    if (email) return email.charAt(0).toUpperCase();
+    return 'U';
+  };
 
   return (
     <div className="space-y-6">
@@ -224,7 +248,7 @@ const AdminDashboard = () => {
              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Search by user ID or order ID" 
+                    placeholder="Search by user email, name, or order ID" 
                     className="pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -255,8 +279,8 @@ const AdminDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>User</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>User ID</TableHead>
                 <TableHead>Send</TableHead>
                 <TableHead>Receive</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -285,11 +309,21 @@ const AdminDashboard = () => {
                 filteredTransactions.map((tx) => (
                   <TransactionDetailsDialog key={tx.id} transaction={tx}>
                     <TableRow className="cursor-pointer">
+                       <TableCell>
+                        <div className="flex items-center gap-3">
+                           <Avatar>
+                                <AvatarFallback>
+                                    {getInitials(usersMap[tx.userId]?.email, usersMap[tx.userId]?.username)}
+                                </AvatarFallback>
+                            </Avatar>
+                           <div className="flex flex-col">
+                             <span className="font-semibold">{usersMap[tx.userId]?.username || usersMap[tx.userId]?.email || 'Unknown User'}</span>
+                             <span className="text-xs text-muted-foreground">{usersMap[tx.userId]?.email ? usersMap[tx.userId]?.username ? usersMap[tx.userId]?.email : '' : tx.userId}</span>
+                           </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">
                         {format(parseISO(tx.transactionDate), "PPp")}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {tx.userId}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -317,7 +351,7 @@ const AdminDashboard = () => {
                         <div className="font-mono">
                           {tx.amount.toFixed(2)} {tx.currency} &rarr;{" "}
                           {tx.receivedAmount.toFixed(2)}{" "}
-                          {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : 'BDT'}
+                          {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : tx.withdrawalMethod === 'Wallet Balance' ? 'USD' : 'BDT'}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
@@ -402,3 +436,5 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
+
+    
