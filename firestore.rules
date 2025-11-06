@@ -17,8 +17,8 @@ service cloud.firestore {
       // An authenticated user can read/write their own document.
       // An admin can read/write any user document.
       allow read, write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      // Any signed-in user can list/query users (e.g., to find a recipient for a transfer).
-      allow list: if isSignedIn();
+      // An admin can list/query users.
+      allow list: if isAdmin();
     }
 
     // Secure transactions for each user.
