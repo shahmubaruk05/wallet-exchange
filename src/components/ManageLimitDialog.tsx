@@ -33,9 +33,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
+import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
 import type { ExchangeLimit } from "@/lib/data";
+import { paymentMethods } from "@/lib/data";
 import { Loader2 } from "lucide-react";
 
 interface ManageLimitDialogProps {
@@ -44,8 +45,8 @@ interface ManageLimitDialogProps {
 }
 
 const formSchema = z.object({
-  fromCurrency: z.string().min(1, "Required"),
-  toCurrency: z.string().min(1, "Required"),
+  fromMethod: z.string().min(1, "Required"),
+  toMethod: z.string().min(1, "Required"),
   minAmount: z.coerce.number().min(0, "Must be non-negative"),
   maxAmount: z.coerce.number().min(0, "Must be non-negative"),
 }).refine(data => data.maxAmount >= data.minAmount, {
@@ -62,25 +63,41 @@ export function ManageLimitDialog({
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const currencies = ["USD", "BDT"];
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      fromCurrency: limit?.fromCurrency || "",
-      toCurrency: limit?.toCurrency || "",
-      minAmount: limit?.minAmount || 0,
-      maxAmount: limit?.maxAmount || 1000,
+    defaultValues: limit ? {
+      fromMethod: limit.fromMethod,
+      toMethod: limit.toMethod,
+      minAmount: limit.minAmount,
+      maxAmount: limit.maxAmount,
+    } : {
+      fromMethod: "",
+      toMethod: "",
+      minAmount: 0,
+      maxAmount: 1000,
     },
   });
+  
+  const fromMethodId = form.watch("fromMethod");
+  const toMethodId = form.watch("toMethod");
+
+  const availableToMethods = paymentMethods.filter(p => p.id !== fromMethodId);
+  const availableFromMethods = paymentMethods.filter(p => p.id !== toMethodId);
+
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
     
+    const dataToSave = {
+        ...values,
+        fromCurrency: paymentMethods.find(p => p.id === values.fromMethod)?.currency,
+        toCurrency: paymentMethods.find(p => p.id === values.toMethod)?.currency,
+    }
+
     if (limit?.id) {
         // Update existing limit
         const limitRef = doc(firestore, `exchange_limits/${limit.id}`);
-        updateDocumentNonBlocking(limitRef, values);
+        updateDocumentNonBlocking(limitRef, dataToSave);
          toast({
             title: "Limit Updated",
             description: "The exchange limit has been successfully updated.",
@@ -89,7 +106,7 @@ export function ManageLimitDialog({
     } else {
         // Create new limit
         const limitsCol = collection(firestore, 'exchange_limits');
-        addDocumentNonBlocking(limitsCol, values);
+        addDocumentNonBlocking(limitsCol, dataToSave);
          toast({
             title: "Limit Created",
             description: "A new exchange limit has been created.",
@@ -109,7 +126,7 @@ export function ManageLimitDialog({
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Manage' : 'Create'} Exchange Limit</DialogTitle>
           <DialogDescription>
-            Set the minimum and maximum amounts for a currency pair.
+            Set the minimum and maximum amounts for an exchange method pair.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -117,18 +134,18 @@ export function ManageLimitDialog({
                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
-                        name="fromCurrency"
+                        name="fromMethod"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>From</FormLabel>
+                                <FormLabel>From Method</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditing}>
                                     <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select currency" />
+                                        <SelectValue placeholder="Select method" />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                        {availableFromMethods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -137,18 +154,18 @@ export function ManageLimitDialog({
                     />
                      <FormField
                         control={form.control}
-                        name="toCurrency"
+                        name="toMethod"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>To</FormLabel>
+                                <FormLabel>To Method</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditing}>
                                     <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select currency" />
+                                        <SelectValue placeholder="Select method" />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                        {availableToMethods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -199,5 +216,3 @@ export function ManageLimitDialog({
     </Dialog>
   );
 }
-
-    

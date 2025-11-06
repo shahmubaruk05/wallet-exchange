@@ -96,10 +96,8 @@ export type CardTopUp = {
 
 export type ExchangeLimit = {
     id: string;
-    fromCurrency: string;
-    toCurrency: string;
+    fromMethod: string;
+    toMethod: string;
     minAmount: number;
     maxAmount: number;
 }
-
-    

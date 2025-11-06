@@ -24,6 +24,7 @@ import { ArrowRight, ArrowLeft, CheckCircle, RefreshCw, Loader2, Info, Copy, Che
 import {
   paymentMethods,
   type PaymentMethod,
+  type ExchangeLimit,
 } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +62,13 @@ export default function ExchangeForm() {
 
   const { data: exchangeRatesData } = useCollection<ExchangeRate>(exchangeRatesQuery);
 
+  const exchangeLimitsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'exchange_limits');
+  }, [firestore]);
+
+  const { data: limitsData } = useCollection<ExchangeLimit>(exchangeLimitsQuery);
+
   const exchangeRates = useMemo(() => {
     if (!exchangeRatesData) return { USD_TO_BDT: 122, BDT_TO_USD_RATE: 127.0 }; // Default values
     
@@ -81,6 +89,14 @@ export default function ExchangeForm() {
     () => paymentMethods.find((p) => p.id === receiveMethodId)!,
     [receiveMethodId]
   );
+
+  const currentLimit = useMemo(() => {
+    if (!limitsData) return null;
+    return limitsData.find(
+      (limit) =>
+        limit.fromMethod === sendMethod.id && limit.toMethod === receiveMethod.id
+    );
+  }, [limitsData, sendMethod, receiveMethod]);
 
   useEffect(() => {
     const calculateExchange = () => {
@@ -156,7 +172,9 @@ export default function ExchangeForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (parseFloat(sendAmount) <= 0 || isNaN(parseFloat(sendAmount))) {
+    const amount = parseFloat(sendAmount);
+
+    if (isNaN(amount) || amount <= 0) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid amount to send.",
@@ -164,6 +182,26 @@ export default function ExchangeForm() {
       });
       return;
     }
+
+    if (currentLimit) {
+      if (amount < currentLimit.minAmount) {
+        toast({
+          title: "Amount Too Low",
+          description: `Minimum exchange amount is ${currentLimit.minAmount} ${sendMethod.currency}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (amount > currentLimit.maxAmount) {
+        toast({
+          title: "Amount Too High",
+          description: `Maximum exchange amount is ${currentLimit.maxAmount} ${sendMethod.currency}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (!user) {
         toast({
             title: "Authentication Required",
@@ -281,15 +319,25 @@ export default function ExchangeForm() {
             </div>
           </div>
 
-           <div className="flex justify-center my-2 items-center text-sm font-medium text-muted-foreground">
+           <div className="flex flex-col sm:flex-row justify-center items-center text-sm font-medium text-muted-foreground gap-4">
             {isCalculating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
-            ) : rateText ? (
-              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
-                 <Info className="h-4 w-4" />
-                <span>Rate: {rateText}</span>
-              </div>
-            ) : null}
+            ) : (
+                <>
+                {rateText && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                        <Info className="h-4 w-4" />
+                        <span>Rate: {rateText}</span>
+                    </div>
+                )}
+                {currentLimit && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                        <Info className="h-4 w-4" />
+                        <span>Limit: {currentLimit.minAmount} - {currentLimit.maxAmount} {sendMethod.currency}</span>
+                    </div>
+                )}
+                </>
+            )}
           </div>
 
 
@@ -475,5 +523,3 @@ export default function ExchangeForm() {
       return renderForm();
   }
 }
-
-    

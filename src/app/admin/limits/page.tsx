@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { ExchangeLimit } from "@/lib/data";
+import { paymentMethods } from "@/lib/data";
 import { Loader2, PlusCircle } from "lucide-react";
 import { ManageLimitDialog } from "@/components/ManageLimitDialog";
 
@@ -29,10 +30,18 @@ const AdminLimitsPage = () => {
 
   const limitsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "exchange_limits"), orderBy("fromCurrency"));
+    return query(collection(firestore, "exchange_limits"), orderBy("fromMethod"));
   }, [firestore]);
 
   const { data: limits, isLoading } = useCollection<ExchangeLimit>(limitsQuery);
+
+  const getMethodName = (id: string) => {
+    return paymentMethods.find(p => p.id === id)?.name || id;
+  }
+  const getMethodCurrency = (id: string) => {
+    return paymentMethods.find(p => p.id === id)?.currency || '';
+  }
+
 
   return (
     <div className="space-y-6">
@@ -59,8 +68,8 @@ const AdminLimitsPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>From Currency</TableHead>
-                <TableHead>To Currency</TableHead>
+                <TableHead>From Method</TableHead>
+                <TableHead>To Method</TableHead>
                 <TableHead>Min Amount</TableHead>
                 <TableHead>Max Amount</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -87,10 +96,10 @@ const AdminLimitsPage = () => {
               {!isLoading &&
                 limits?.map((limit) => (
                   <TableRow key={limit.id}>
-                    <TableCell className="font-semibold">{limit.fromCurrency}</TableCell>
-                    <TableCell className="font-semibold">{limit.toCurrency}</TableCell>
-                    <TableCell className="font-mono">{limit.minAmount.toLocaleString()}</TableCell>
-                    <TableCell className="font-mono">{limit.maxAmount.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold">{getMethodName(limit.fromMethod)}</TableCell>
+                    <TableCell className="font-semibold">{getMethodName(limit.toMethod)}</TableCell>
+                    <TableCell className="font-mono">{limit.minAmount.toLocaleString()} {getMethodCurrency(limit.fromMethod)}</TableCell>
+                    <TableCell className="font-mono">{limit.maxAmount.toLocaleString()} {getMethodCurrency(limit.fromMethod)}</TableCell>
                     <TableCell className="text-right">
                        <ManageLimitDialog limit={limit}>
                           <Button variant="outline" size="sm">
@@ -109,5 +118,3 @@ const AdminLimitsPage = () => {
 };
 
 export default AdminLimitsPage;
-
-    
