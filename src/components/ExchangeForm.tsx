@@ -114,18 +114,6 @@ export default function ExchangeForm() {
   useEffect(() => {
     const calculateExchange = () => {
       setIsCalculating(true);
-      
-      if (sendMethod.id === 'wallet') {
-          const amount = parseFloat(sendAmount);
-          const amountAfterFee = amount; // No fee for wallet to other
-          const result = amountAfterFee * exchangeRates.USD_TO_BDT;
-          setReceiveAmount(result > 0 ? result.toFixed(2) : "");
-          setTransactionFee(0);
-          setRateText(`1 USD = ${exchangeRates.USD_TO_BDT} BDT`);
-          setIsCalculating(false);
-          return;
-      }
-
 
       const feePercentages: { [key: string]: number } = {
         bkash: 0.0185,
@@ -133,6 +121,7 @@ export default function ExchangeForm() {
         wise: 0.029,
         payoneer: 0.01,
         paypal: 0.05,
+        wallet: 0.0, // No fee for wallet
       };
       const feePercentage = feePercentages[sendMethod.id] || 0;
 
@@ -141,8 +130,8 @@ export default function ExchangeForm() {
         rateString = `1 USD = ${exchangeRates.USD_TO_BDT} BDT`;
       } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
         rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
-      } else {
-        rateString = `1 ${sendMethod.currency} = 1 ${receiveMethod.currency}`;
+      } else { // USD to USD
+        rateString = `1 USD = 1 USD`;
       }
 
       if (lastEdited === 'send') {
@@ -160,7 +149,7 @@ export default function ExchangeForm() {
             result = amountAfterFee * exchangeRates.USD_TO_BDT;
           } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
             result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
-          } else {
+          } else { // USD to USD
             result = amountAfterFee;
           }
           setReceiveAmount(result > 0 ? result.toFixed(2) : "");
@@ -176,7 +165,7 @@ export default function ExchangeForm() {
             amountBeforeFee = amount / exchangeRates.USD_TO_BDT;
           } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
             amountBeforeFee = amount * exchangeRates.BDT_TO_USD_RATE;
-          } else {
+          } else { // USD to USD
             amountBeforeFee = amount;
           }
           
@@ -420,7 +409,7 @@ export default function ExchangeForm() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {paymentMethods.filter(m => m.id !== 'virtual_card_top_up').map((method) => (
+                  {paymentMethods.filter(m => m.type !== 'virtual-card').map((method) => (
                     <SelectItem key={method.id} value={method.id}>
                       <div className="flex items-center gap-3">
                         <PaymentIcon id={method.id} />
@@ -486,7 +475,7 @@ export default function ExchangeForm() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {paymentMethods.filter(m => m.id !== 'virtual_card_top_up').map((method) => (
+                  {paymentMethods.filter(m => m.type !== 'virtual-card').map((method) => (
                     <SelectItem key={method.id} value={method.id}>
                       <div className="flex items-center gap-3">
                         <PaymentIcon id={method.id} />
@@ -710,5 +699,3 @@ export default function ExchangeForm() {
       return renderForm();
   }
 }
-
-    
