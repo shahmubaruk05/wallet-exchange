@@ -25,12 +25,15 @@ import {
   paymentMethods,
   type PaymentMethod,
   type ExchangeLimit,
+  type User,
 } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking, runTransactionNonBlocking, useDoc } from "@/firebase";
+import { collection, doc, increment } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
+import Link from 'next/link';
+
 
 type Step = "form" | "confirm" | "status";
 type LastEdited = "send" | "receive";
@@ -56,6 +59,14 @@ export default function ExchangeForm() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+   const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc<User>(userDocRef);
+  const walletBalance = userData?.walletBalance ?? 0;
 
   const exchangeRatesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -103,6 +114,18 @@ export default function ExchangeForm() {
   useEffect(() => {
     const calculateExchange = () => {
       setIsCalculating(true);
+      
+      if (sendMethod.id === 'wallet') {
+          const amount = parseFloat(sendAmount);
+          const amountAfterFee = amount; // No fee for wallet to other
+          const result = amountAfterFee * exchangeRates.USD_TO_BDT;
+          setReceiveAmount(result > 0 ? result.toFixed(2) : "");
+          setTransactionFee(0);
+          setRateText(`1 USD = ${exchangeRates.USD_TO_BDT} BDT`);
+          setIsCalculating(false);
+          return;
+      }
+
 
       const feePercentages: { [key: string]: number } = {
         bkash: 0.0185,
@@ -211,6 +234,18 @@ export default function ExchangeForm() {
       });
       return;
     }
+    
+    if (sendMethod.id === 'wallet') {
+      if (amount > walletBalance) {
+        toast({
+          title: "Insufficient Wallet Balance",
+          description: `You only have ${walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} available.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
 
     if (currentLimit) {
       if (amount < currentLimit.minAmount) {
@@ -242,8 +277,70 @@ export default function ExchangeForm() {
     setStep("confirm");
   };
 
+  const handleWalletConfirm = async (e: React.FormEvent) => {
+     e.preventDefault();
+    if (!user || !firestore || !userDocRef) return;
+
+    const amountToDeduct = parseFloat(sendAmount);
+    if (amountToDeduct > walletBalance) {
+       toast({ title: "Insufficient Balance", description: "Your wallet balance is too low for this transaction.", variant: "destructive" });
+       setStep('form');
+       return;
+    }
+    
+    if (!receivingAccountId) {
+         toast({ title: "Missing Information", description: "Please provide your receiving account number.", variant: "destructive" });
+         return;
+    }
+
+    await runTransactionNonBlocking(firestore, async (transaction) => {
+      const userSnapshot = await transaction.get(userDocRef);
+      const currentBalance = userSnapshot.data()?.walletBalance ?? 0;
+      
+      if (currentBalance < amountToDeduct) {
+        throw new Error("Insufficient balance.");
+      }
+
+      // Deduct from wallet
+      transaction.update(userDocRef, { walletBalance: increment(-amountToDeduct) });
+
+      // Create a pending transaction log
+      const newTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
+      transaction.set(newTxRef, {
+        userId: user.uid,
+        paymentMethod: sendMethod.name,
+        withdrawalMethod: receiveMethod.name,
+        amount: amountToDeduct,
+        currency: sendMethod.currency,
+        receivedAmount: parseFloat(receiveAmount),
+        status: "Pending" as const,
+        transactionDate: new Date().toISOString(),
+        sendingAccountId: "Wallet",
+        transactionId: `WALLET_EXCHANGE_${Date.now()}`,
+        receivingAccountId,
+        transactionFee: 0,
+        adminNote: "Awaiting admin approval.",
+        transactionType: 'EXCHANGE' as const,
+        exchangeRateId: "N/A",
+      });
+    });
+
+    toast({
+      title: "Exchange Request Submitted!",
+      description: "Your request has been submitted and is awaiting admin approval.",
+      className: "bg-accent text-accent-foreground",
+    });
+    setStep("status");
+  }
+
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (sendMethod.id === 'wallet') {
+      handleWalletConfirm(e);
+      return;
+    }
+
     if (!user || !firestore) return;
      if (!sendingAccountId || !transactionId || !receivingAccountId) {
       toast({
@@ -429,6 +526,57 @@ export default function ExchangeForm() {
   );
 
   const renderConfirm = () => {
+    if (sendMethod.id === 'wallet') {
+      return (
+        <Card className="w-full shadow-lg">
+          <CardHeader>
+            <CardTitle>Confirm Exchange from Wallet</CardTitle>
+            <CardDescription>Review the details of your exchange.</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleConfirm}>
+            <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm mt-4">
+                    <div className="flex justify-between items-center text-base">
+                        <span className="text-muted-foreground">Your Current Wallet Balance</span>
+                        <span className="font-bold text-lg text-accent-foreground">
+                            {walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">You are sending</span>
+                        <span className="font-semibold flex items-center gap-2">
+                        <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
+                        {parseFloat(sendAmount).toFixed(2)} {sendMethod.currency}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-base">
+                        <span className="text-muted-foreground">You will receive</span>
+                        <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
+                          <PaymentIcon id={receiveMethod.id} className="w-5 h-5"/>
+                          {receiveAmount} {receiveMethod.currency}
+                        </span>
+                    </div>
+                </div>
+
+                 <div className="space-y-2 pt-4 border-t">
+                    <Label htmlFor="receiving-account">Your {receiveMethod.name} Account</Label>
+                    <Input id="receiving-account" value={receivingAccountId} onChange={(e) => setReceivingAccountId(e.target.value)} placeholder={`Your ${receiveMethod.name} number`} required />
+                </div>
+
+            </CardContent>
+            <CardFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <Button type="submit" className="w-full sm:w-auto flex-grow">
+                    Confirm Order
+                </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      );
+    }
+    
     const paymentInstructions: { [key: string]: string } = {
       paypal: 'pay@tabseerinc.com',
       payoneer: 'tabseerenterprise@gmail.com',
@@ -537,10 +685,15 @@ export default function ExchangeForm() {
         <p className="text-muted-foreground">
           Your transaction is now <span className="text-primary font-semibold">Processing</span>. You will be notified once it's completed.
         </p>
-        <div className="w-full pt-4">
+        <div className="w-full pt-4 flex flex-col gap-2 sm:flex-row">
            <Button onClick={startNewTransaction} className="w-full">
             Start New Transaction
           </Button>
+           <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard">
+                    Back to Dashboard
+                </Link>
+            </Button>
         </div>
       </CardContent>
     </Card>
@@ -557,3 +710,5 @@ export default function ExchangeForm() {
       return renderForm();
   }
 }
+
+    
