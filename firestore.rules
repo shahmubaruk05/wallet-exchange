@@ -31,11 +31,6 @@ service cloud.firestore {
         allow list: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
     }
     
-    // Allow admins to perform collection group queries on 'transactions'.
-    match /{path=**}/transactions/{transactionId} {
-      allow list, get: if isAdmin();
-    }
-
     // Secure exchange rates.
     match /exchange_rates/{exchangeRateId} {
       // Any signed-in user can read rates.
