@@ -60,6 +60,9 @@ service cloud.firestore {
       // Only admins can write limits.
       allow write: if isAdmin();
     }
+     match /{path=**}/users/{userId} {
+      allow list, get: if isAdmin();
+    }
   }
 }
 
