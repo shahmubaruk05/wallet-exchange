@@ -3,51 +3,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 Admin চিনার helper
     function isAdmin() {
       return request.auth != null &&
         (
-          request.auth.token.email == "shahmubaruk05@gmail.com" || // admin email
-          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"      // admin UID
+          request.auth.token.email == "shahmubaruk05@gmail.com" ||
+          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"
         );
     }
 
-    // 🔐 User profile
     match /users/{userId} {
-      // নিজের প্রোফাইল দেখা / আপডেট
       allow read, update: if request.auth != null && request.auth.uid == userId;
-      // সাইন আপ এর সময় create
       allow create: if request.auth != null;
     }
 
-    // 🔐 User transactions (subcollection)
     match /users/{userId}/transactions/{txId} {
-      // ইউজার শুধু নিজের ট্রান্সাকশন দেখতে/তৈরি করতে পারবে
       allow read, create: if request.auth != null && request.auth.uid == userId;
-      // status change ইত্যাদি শুধু admin
       allow update, delete: if isAdmin();
     }
 
-    // 🔐 Root-level transactions summary (যদি ব্যবহার করো)
     match /transactions/{txId} {
       allow read, write: if isAdmin();
     }
 
-    // 🌍 Exchange rates – এটা সব logged-in user read করতে পারবে
+    // 🌍 Exchange rates – সবাই read, শুধু admin write
     match /exchange_rates/{rateId} {
-      // Dashboard-এ rate দেখানোর জন্য
       allow read: if request.auth != null;
-      // Rates update করবে শুধু admin
       allow write: if isAdmin();
     }
 
-    // (ইচ্ছা করলে এক্সচেঞ্জ লিমিটস ইত্যাদিও এখানে দিতে পারো)
-    // match /exchange_limits/{docId} {
-    //   allow read: if request.auth != null;
-    //   allow write: if isAdmin();
-    // }
+    // 🌍 Exchange limits – সবাই read, শুধু admin write
+    match /exchange_limits/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
 
-    // 🌐 ডিফল্ট: বাকী সবকিছু শুধু admin
+    // বাকী সবকিছু শুধু admin
     match /{document=**} {
       allow read, write: if isAdmin();
     }
