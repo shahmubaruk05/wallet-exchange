@@ -1,117 +1,371 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, CreditCard, Repeat } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  ArrowRight,
+  CreditCard,
+  Repeat,
+  Wallet,
+  Send,
+  CheckCircle,
+  ShieldCheck,
+  Zap,
+  Users,
+  MessageSquare,
+} from "lucide-react";
 import Link from "next/link";
+import PaymentIcon from "@/components/PaymentIcons";
 
 export default function Home() {
+  const wallets = [
+    { id: "paypal", name: "PayPal" },
+    { id: "payoneer", name: "Payoneer" },
+    { id: "wise", name: "Wise" },
+    { id: "bkash", name: "bKash" },
+    { id: "nagad", name: "Nagad" },
+  ];
   return (
     <>
       {/* Hero Section */}
-      <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-background">
+      <section className="w-full py-20 md:py-28 lg:py-32 bg-gradient-to-b from-blue-50 via-white to-white dark:from-slate-900/50 dark:via-background">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col justify-center space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-primary-foreground">
-                  Your All-in-One Digital Wallet Solution
+          <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
+            <div className="flex flex-col justify-center space-y-6">
+              <div className="space-y-4">
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900 dark:text-slate-50">
+                  Your All-in-One Digital Wallet XChanger
                 </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Seamlessly exchange funds between popular digital wallets and get a secure virtual card for your international payments. Fast, secure, and reliable.
+                <p className="max-w-[600px] text-slate-600 md:text-xl dark:text-slate-400">
+                  Exchange funds between PayPal, Payoneer, Wise, bKash, Nagad,
+                  and more. Get a secure virtual card for international
+                  payments.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Button asChild size="lg">
+              <div className="flex flex-col gap-4 min-[400px]:flex-row">
+                <Button asChild size="lg" className="px-8 py-6 text-base">
                   <Link href="/dashboard/exchange">
                     Start Exchanging
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button asChild variant="secondary" size="lg">
-                  <Link href="/dashboard/cards">
-                    Get a Virtual Card
-                  </Link>
+                <Button
+                  asChild
+                  variant="secondary"
+                  size="lg"
+                  className="px-8 py-6 text-base"
+                >
+                  <Link href="/dashboard/cards">Get a Virtual Card</Link>
                 </Button>
               </div>
             </div>
-            <div className="hidden lg:block">
-               <div className="relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-accent rounded-xl blur-lg opacity-75"></div>
-                  <Card className="relative">
-                    <CardHeader>
-                        <CardTitle>Example Exchange</CardTitle>
-                        <CardDescription>From PayPal to Bkash</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex justify-between items-center text-lg">
-                            <span className="font-bold text-blue-600">PayPal</span>
-                            <ArrowRight className="text-muted-foreground"/>
-                            <span className="font-bold text-pink-600">Bkash</span>
-                        </div>
-                        <div className="mt-4 text-center">
-                            <p className="text-2xl font-mono">$100.00 <span className="text-muted-foreground">&rarr;</span> 12,200.00 BDT</p>
-                        </div>
-                    </CardContent>
-                  </Card>
-               </div>
+            <div className="flex items-center justify-center">
+              <div className="relative w-full max-w-md">
+                <div className="absolute -inset-2 bg-gradient-to-r from-cyan-400 to-sky-500 rounded-2xl blur-lg opacity-50"></div>
+                <Card className="relative rounded-2xl shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-xl">Example Exchange</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center text-lg font-semibold">
+                      <div className="flex items-center gap-2">
+                        <PaymentIcon id="paypal" className="w-7 h-7" />
+                        <span>PayPal</span>
+                      </div>
+                      <ArrowRight className="text-slate-400" />
+                      <div className="flex items-center gap-2">
+                        <PaymentIcon id="bkash" className="w-7 h-7" />
+                        <span>bKash</span>
+                      </div>
+                    </div>
+                    <div className="mt-6 text-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
+                      <p className="text-2xl font-mono text-slate-800 dark:text-slate-200">
+                        $100.00{" "}
+                        <span className="text-slate-500 mx-2">&rarr;</span>{" "}
+                        12,200.00 BDT
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+      {/* Supported Wallets Strip */}
+      <section className="py-8 bg-slate-50 dark:bg-slate-800/50 border-y dark:border-slate-800">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+              We support:
+            </span>
+            {wallets.map((wallet) => (
+              <div
+                key={wallet.id}
+                className="flex items-center gap-2 text-slate-500 dark:text-slate-400"
+              >
+                <PaymentIcon id={wallet.id} className="w-5 h-5" />
+                <span className="text-sm font-medium">{wallet.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="w-full py-16 md:py-24">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Our Services</div>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Everything You Need for Digital Finance</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Whether you need to quickly exchange money between wallets or require a virtual card for online purchases, we have you covered.
+              <div className="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/50 px-3 py-1 text-sm font-medium text-blue-800 dark:text-blue-300">
+                Our Services
+              </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-slate-50">
+                Everything You Need for Digital Finance
+              </h2>
+              <p className="max-w-[700px] text-slate-600 md:text-lg dark:text-slate-400">
+                Whether you need to quickly exchange money between wallets or
+                require a virtual card for online purchases, we have you
+                covered.
               </p>
             </div>
           </div>
-          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-2 mt-12">
-            <Card className="hover:shadow-lg transition-shadow">
+          <div className="mx-auto grid max-w-5xl items-stretch gap-8 sm:grid-cols-2 mt-12">
+            <Card className="hover:shadow-xl hover:-translate-y-1 transition-all rounded-2xl">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Repeat className="w-6 h-6 text-primary"/>
-                    </div>
-                    <CardTitle className="text-2xl">Currency Exchange</CardTitle>
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <Repeat className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <CardTitle className="text-2xl">
+                    Currency & Wallet Exchange
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <CardDescription>
-                  Effortlessly transfer funds between Bkash, Nagad, PayPal, Payoneer, and Wise. Our platform ensures swift and secure transactions at competitive rates.
-                </CardDescription>
-                 <Button asChild variant="outline">
-                   <Link href="/dashboard/exchange">
-                    Exchange Now <ArrowRight className="ml-2"/>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Effortlessly transfer funds between bKash, Nagad, PayPal,
+                  Payoneer, and Wise. Our platform ensures swift and secure
+                  transactions at competitive rates.
+                </p>
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/exchange">
+                    Exchange Now <ArrowRight className="ml-2" />
                   </Link>
                 </Button>
               </CardContent>
             </Card>
-            <Card className="hover:shadow-lg transition-shadow">
-               <CardHeader className="pb-4">
+            <Card className="hover:shadow-xl hover:-translate-y-1 transition-all rounded-2xl">
+              <CardHeader className="pb-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                        <CreditCard className="w-6 h-6 text-accent-foreground"/>
-                    </div>
-                    <CardTitle className="text-2xl">Virtual Cards</CardTitle>
+                  <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                    <CreditCard className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <CardTitle className="text-2xl">Virtual USD Cards</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <CardDescription>
-                    Get your own virtual card for secure online and international payments. Top up easily using your local currency and start spending globally in minutes.
-                </CardDescription>
-                 <Button asChild variant="outline">
+                <p className="text-slate-600 dark:text-slate-400">
+                  Get your own virtual card for secure online and international
+                  payments. Top up easily using your local currency and start
+                  spending globally.
+                </p>
+                <Button asChild variant="outline">
                   <Link href="/dashboard/cards">
-                    Get Your Card <ArrowRight className="ml-2"/>
+                    Get Your Card <ArrowRight className="ml-2" />
                   </Link>
                 </Button>
               </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="w-full py-16 md:py-24 bg-slate-50 dark:bg-slate-800/50">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="inline-block rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-medium text-slate-800 dark:text-slate-300">
+              How It Works
+            </div>
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-slate-50">
+              Exchange in 3 Simple Steps
+            </h2>
+          </div>
+          <div className="mx-auto grid gap-8 md:grid-cols-3 md:gap-12 mt-12 max-w-6xl">
+            {[
+              {
+                icon: Wallet,
+                title: "Choose wallets & amount",
+                text: "Select how you want to pay and where you want to receive funds.",
+              },
+              {
+                icon: Send,
+                title: "Send your payment",
+                text: "Transfer to our bKash, Nagad, PayPal, Payoneer, or Wise account.",
+              },
+              {
+                icon: CheckCircle,
+                title: "Receive within minutes",
+                text: "We send the exchanged amount to your chosen wallet.",
+              },
+            ].map((step, i) => (
+              <Card
+                key={i}
+                className="p-8 flex flex-col items-center text-center rounded-2xl shadow-sm hover:shadow-lg transition-shadow"
+              >
+                <div className="p-4 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-4">
+                  <step.icon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-slate-50">
+                  Step {i + 1}: {step.title}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">{step.text}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Us Section */}
+      <section className="w-full py-16 md:py-24">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/50 px-3 py-1 text-sm font-medium text-blue-800 dark:text-blue-300">
+              Why Wallet XChanger
+            </div>
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-slate-50">
+              Built for Freelancers & Online Businesses
+            </h2>
+          </div>
+          <div className="mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-12 max-w-6xl">
+            {[
+              {
+                icon: Zap,
+                title: "Fast settlements",
+                text: "Most exchanges are processed within 30-60 minutes during working hours.",
+              },
+              {
+                icon: ShieldCheck,
+                title: "Secure & verified",
+                text: "Manual review and secure wallet details to keep your funds safe.",
+              },
+              {
+                icon: Users,
+                title: "Transparent rates",
+                text: "No hidden fees. You see the rate and final amount before you pay.",
+              },
+              {
+                icon: MessageSquare,
+                title: "Friendly support",
+                text: "Get help via email or chat when you need it.",
+              },
+            ].map((feature, i) => (
+              <Card key={i} className="p-6 rounded-2xl shadow-sm">
+                <feature.icon className="w-8 h-8 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-lg font-bold mb-2 text-slate-900 dark:text-slate-50">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {feature.text}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="w-full py-16 md:py-24 bg-slate-50 dark:bg-slate-800/50">
+        <div className="container px-4 md:px-6">
+          <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl text-slate-900 dark:text-slate-50">
+            Trusted by remote workers & agencies
+          </h2>
+          <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-12">
+            {[
+              {
+                quote:
+                  "Wallet XChanger is a lifesaver! Getting paid from US clients to my bKash is now incredibly fast and simple.",
+                name: "M. Hasan",
+                role: "Upwork Designer",
+              },
+              {
+                quote:
+                  "The virtual card is perfect for all my SaaS subscriptions. Topping it up is super easy. Highly recommended!",
+                name: "Sadia Rahman",
+                role: "Agency Owner",
+              },
+              {
+                quote:
+                  "I was skeptical at first, but their rates are fair and the service is reliable. Their support team is also very helpful.",
+                name: "John Doe",
+                role: "Freelance Developer",
+              },
+            ].map((testimonial, i) => (
+              <Card key={i} className="p-6 rounded-2xl shadow-sm">
+                <CardContent className="p-0">
+                  <p className="text-slate-600 dark:text-slate-400 mb-4">
+                    "{testimonial.quote}"
+                  </p>
+                  <div className="font-semibold text-slate-900 dark:text-slate-50">
+                    {testimonial.name}
+                  </div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    {testimonial.role}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="w-full py-16 md:py-24">
+        <div className="container max-w-4xl px-4 md:px-6">
+          <h2 className="text-3xl font-bold tracking-tighter text-center mb-8 sm:text-4xl text-slate-900 dark:text-slate-50">
+            Frequently Asked Questions
+          </h2>
+          <Accordion type="single" collapsible className="w-full">
+            {[
+              {
+                q: "How long does an exchange take?",
+                a: "Most exchanges are completed within 30-60 minutes during our business hours (10 AM - 10 PM). Orders outside these hours may take longer.",
+              },
+              {
+                q: "What wallets do you support?",
+                a: "We support PayPal, Payoneer, Wise, bKash, and Nagad for both sending and receiving funds. You can also use your Wallet XChanger balance.",
+              },
+              {
+                q: "Is there a minimum or maximum amount?",
+                a: "Yes, each exchange pair has its own minimum and maximum limits. These are clearly displayed on the exchange form when you enter an amount.",
+              },
+              {
+                q: "How do I get a virtual card?",
+                a: "Simply sign up, add at least $10 to your wallet balance, and fill out the application form on the 'My Card' page. The balance is not a fee and remains yours to use.",
+              },
+            ].map((faq, i) => (
+              <AccordionItem key={i} value={`item-${i + 1}`}>
+                <AccordionTrigger className="text-lg text-left">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-base text-slate-600 dark:text-slate-400">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
     </>
