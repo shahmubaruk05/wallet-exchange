@@ -318,7 +318,7 @@ const AdminDashboard = () => {
                             </Avatar>
                            <div className="flex flex-col">
                              <span className="font-semibold">{usersMap[tx.userId]?.username || usersMap[tx.userId]?.email || 'Unknown User'}</span>
-                             <span className="text-xs text-muted-foreground">{usersMap[tx.userId]?.email ? usersMap[tx.userId]?.username ? usersMap[tx.userId]?.email : '' : tx.userId}</span>
+                             <span className="text-xs text-muted-foreground">{usersMap[tx.userId]?.username ? usersMap[tx.userId]?.email : ''}</span>
                            </div>
                         </div>
                       </TableCell>
