@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import {
   Table,
   TableHeader,
@@ -45,9 +45,10 @@ const getStatusVariant = (status: TransactionStatus) => {
   }
 };
 
-const AdminUserDetailsPage = ({ params }: { params: { userId: string } }) => {
+const AdminUserDetailsPage = () => {
   const firestore = useFirestore();
-  const userId = params.userId;
+  const params = useParams();
+  const userId = params.userId as string;
 
   const userDocRef = useMemoFirebase(
     () => (firestore && userId ? doc(firestore, `users/${userId}`) : null),
