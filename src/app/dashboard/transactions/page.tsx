@@ -18,7 +18,7 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Transaction } from "@/lib/data";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
-import { DollarSign, Landmark } from 'lucide-react';
+import { DollarSign, Landmark, Send } from 'lucide-react';
 
 const getStatusVariant = (status: Transaction['status']) => {
   switch (status) {
@@ -48,7 +48,7 @@ const UserTransactionsPage = () => {
   const { data: userTransactions, isLoading } = useCollection<Transaction>(userTransactionsQuery);
   
   const getWithdrawalCurrency = (tx: Transaction) => {
-    if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance') {
+    if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance' || tx.transactionType === 'WALLET_TRANSFER') {
       return 'USD';
     }
     return 'BDT';
@@ -99,6 +99,8 @@ const UserTransactionsPage = () => {
                           <DollarSign className="h-5 w-5 text-primary" />
                         ) : tx.transactionType === 'ADD_FUNDS' ? (
                           <Landmark className="h-5 w-5 text-primary" />
+                        ) : tx.transactionType === 'WALLET_TRANSFER' ? (
+                          <Send className="h-5 w-5 text-primary" />
                         ) : (
                           <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
                         )}

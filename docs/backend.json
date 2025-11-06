@@ -79,7 +79,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction made by a user. Can be an exchange, a card top-up, or adding funds.",
+      "description": "Represents a transaction made by a user. Can be an exchange, a card top-up, adding funds, or a wallet transfer.",
       "properties": {
         "id": {
           "type": "string",
@@ -95,7 +95,7 @@
         },
         "withdrawalMethod": {
           "type": "string",
-          "description": "The withdrawal method chosen for the transaction (e.g., Bkash, Nagad, PayPal, or 'Virtual Card Top Up')."
+          "description": "The withdrawal method chosen for the transaction (e.g., Bkash, Nagad, PayPal, 'Virtual Card Top Up')."
         },
         "amount": {
           "type": "number",
@@ -141,15 +141,36 @@
         "transactionType": {
           "type": "string",
           "description": "The type of transaction.",
-          "enum": ["EXCHANGE", "CARD_TOP_UP", "ADD_FUNDS"]
+          "enum": [
+            "EXCHANGE",
+            "CARD_TOP_UP",
+            "ADD_FUNDS",
+            "WALLET_TRANSFER"
+          ]
         },
         "topUpDetails": {
           "type": "object",
           "description": "Details specific to a card top-up transaction.",
           "properties": {
-            "sentAmount": { "type": "number" },
-            "sentCurrency": { "type": "string" },
-            "topUpAmountUSD": { "type": "number" }
+            "sentAmount": {
+              "type": "number"
+            },
+            "sentCurrency": {
+              "type": "string"
+            },
+            "topUpAmountUSD": {
+              "type": "number"
+            }
+          }
+        },
+        "transferDetails": {
+          "type": "object",
+          "description": "Details specific to a wallet-to-wallet transfer.",
+          "properties": {
+            "senderId": { "type": "string" },
+            "recipientId": { "type": "string" },
+            "senderEmail": { "type": "string" },
+            "recipientEmail": { "type": "string" }
           }
         }
       },
@@ -201,7 +222,11 @@
         "status": {
           "type": "string",
           "description": "The status of the application.",
-          "enum": ["Pending", "Approved", "Rejected"]
+          "enum": [
+            "Pending",
+            "Approved",
+            "Rejected"
+          ]
         },
         "appliedAt": {
           "type": "string",
@@ -246,12 +271,12 @@
           "description": "Unique identifier for the limit rule."
         },
         "fromMethod": {
-            "type": "string",
-            "description": "The source payment method ID (e.g., 'paypal', 'bkash')."
+          "type": "string",
+          "description": "The source payment method ID (e.g., 'paypal', 'bkash')."
         },
         "toMethod": {
-            "type": "string",
-            "description": "The destination payment method ID (e.g., 'bkash', 'paypal')."
+          "type": "string",
+          "description": "The destination payment method ID (e.g., 'bkash', 'paypal')."
         },
         "fromCurrency": {
           "type": "string",
@@ -375,5 +400,3 @@
     "reasoning": "The Firestore structure is designed to manage users, exchange rates, and transactions within the Wallet Exchange application. It prioritizes authorization independence by using path-based ownership for user data and storing user-specific transactions under their respective user documents. Exchange rates are stored in a separate collection, accessible for read operations to all users, while only admins can update the data. Card top-ups and fund deposits are now part of the main transactions collection, differentiated by a `transactionType` field, which simplifies queries and keeps all user financial activities in one place. Each user document also contains a `walletBalance` field to track their funds."
   }
 }
-
-    
