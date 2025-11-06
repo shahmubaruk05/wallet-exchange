@@ -54,5 +54,10 @@ service cloud.firestore {
       // Only admins can write limits.
       allow write: if isAdmin();
     }
+
+    // Allow admins to list all transactions via collection group query.
+    match /{path=**}/transactions/{transactionId} {
+      allow get, list: if isAdmin();
+    }
   }
 }
