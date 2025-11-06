@@ -23,7 +23,7 @@ export let exchangeRates = {
 };
 
 export type TransactionStatus = "Processing" | "Paid" | "Completed" | "Pending" | "Cancelled";
-export type TransactionType = "EXCHANGE" | "CARD_TOP_UP" | "ADD_FUNDS" | "WALLET_TRANSFER";
+export type TransactionType = "EXCHANGE" | "CARD_TOP_UP" | "ADD_FUNDS";
 
 
 // This type should align with the Transaction entity in backend.json
@@ -49,13 +49,7 @@ export type Transaction = {
     sentAmount: number;
     sentCurrency: string;
     topUpAmountUSD: number;
-  },
-  transferDetails?: {
-    senderId: string;
-    recipientId: string;
-    recipientEmail?: string;
-    senderEmail?: string;
-  }
+  };
 };
 
 export type ExchangeRate = {

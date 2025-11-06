@@ -79,7 +79,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction made by a user. Can be an exchange, a card top-up, adding funds, or a wallet transfer.",
+      "description": "Represents a transaction made by a user. Can be an exchange, a card top-up, or adding funds.",
       "properties": {
         "id": {
           "type": "string",
@@ -144,8 +144,7 @@
           "enum": [
             "EXCHANGE",
             "CARD_TOP_UP",
-            "ADD_FUNDS",
-            "WALLET_TRANSFER"
+            "ADD_FUNDS"
           ]
         },
         "topUpDetails": {
@@ -161,16 +160,6 @@
             "topUpAmountUSD": {
               "type": "number"
             }
-          }
-        },
-        "transferDetails": {
-          "type": "object",
-          "description": "Details specific to a wallet-to-wallet transfer.",
-          "properties": {
-            "senderId": { "type": "string" },
-            "recipientId": { "type": "string" },
-            "senderEmail": { "type": "string" },
-            "recipientEmail": { "type": "string" }
           }
         }
       },

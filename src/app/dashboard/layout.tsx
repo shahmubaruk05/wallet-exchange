@@ -13,7 +13,7 @@ import {
   SidebarInset,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet, Send } from "lucide-react";
+import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -73,14 +73,6 @@ export default function DashboardLayout({
                   </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Transfer Funds">
-                      <Link href="/dashboard/transfer">
-                      <Send />
-                      <span>Transfer Funds</span>
-                      </Link>
-                  </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Exchange">
                       <Link href="/dashboard/exchange">
                       <ArrowLeftRight />
@@ -136,5 +128,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-
-    
