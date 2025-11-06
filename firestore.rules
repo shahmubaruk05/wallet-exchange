@@ -36,6 +36,15 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+    
+    // 🆕 User card application data
+    match /card_applications/{userId} {
+      // ইউজার নিজের card application পড়তে ও বানাতে/আপডেট করতে পারবে
+      allow read, create, update: if request.auth != null && request.auth.uid == userId;
+      // সবকিছু admin-ও করতে পারবে
+      allow read, write: if isAdmin();
+    }
+
 
     // বাকী সবকিছু শুধু admin
     match /{document=**} {
