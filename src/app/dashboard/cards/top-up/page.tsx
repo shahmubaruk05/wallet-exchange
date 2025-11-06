@@ -24,7 +24,7 @@ import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarS
 import { paymentMethods, type ExchangeLimit, type User } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, runTransactionNonBlocking, useDoc } from "@/firebase";
+import { useFirestore, useUser, useCollection, useMemoFirebase, runTransactionNonBlocking, useDoc, addDocumentNonBlocking } from "@/firebase";
 import { collection, doc, serverTimestamp, increment } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from "next/link";
@@ -274,7 +274,7 @@ export default function CardTopUpPage() {
       // Deduct from wallet
       transaction.update(userDocRef, { walletBalance: increment(-amountToDeduct) });
 
-      // Create a completed transaction log
+      // Create a pending transaction log
       const newTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
       transaction.set(newTxRef, {
         userId: user.uid,
@@ -283,21 +283,21 @@ export default function CardTopUpPage() {
         amount: amountToDeduct,
         currency: sendMethod.currency,
         receivedAmount: parseFloat(receiveAmount),
-        status: "Completed" as const,
+        status: "Pending" as const,
         transactionDate: new Date().toISOString(),
         sendingAccountId: "Wallet",
         transactionId: `WALLET_TOPUP_${Date.now()}`,
         receivingAccountId: "N/A - Card Top Up",
         transactionFee: 0,
-        adminNote: "Completed instantly from wallet balance.",
+        adminNote: "Awaiting admin approval.",
         transactionType: 'CARD_TOP_UP' as const,
         exchangeRateId: "N/A",
       });
     });
 
     toast({
-      title: "Top-Up Successful!",
-      description: "Funds have been added to your card from your wallet.",
+      title: "Top-Up Request Submitted!",
+      description: "Your request has been submitted and is awaiting admin approval.",
       className: "bg-accent text-accent-foreground",
     });
     setStep("status");
@@ -652,7 +652,7 @@ export default function CardTopUpPage() {
                 <CheckCircle className="w-16 h-16 text-accent animate-pulse" />
                 <h2 className="text-2xl font-bold">Top Up Request Received!</h2>
                 <p className="text-muted-foreground">
-                Your request is now <span className="text-primary font-semibold">{sendMethod.id === 'wallet' ? 'Completed' : 'Pending'}</span>. You will be notified once it's completed.
+                Your request is now <span className="text-primary font-semibold">Pending</span>. You will be notified once it's completed.
                 </p>
                 <div className="w-full pt-4 flex flex-col sm:flex-row gap-2">
                 <Button onClick={startNewTransaction} className="w-full">
