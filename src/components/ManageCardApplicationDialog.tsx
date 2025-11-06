@@ -38,15 +38,9 @@ interface ManageCardApplicationDialogProps {
 }
 
 const formSchema = z.object({
-  cardNumber: z.string().refine((val) => !val || /^\d{4} \d{4} \d{4} \d{4}$/.test(val), {
-    message: "Card number must be 16 digits.",
-  }),
-  expiryDate: z.string().refine((val) => !val || /^(0[1-9]|1[0-2])\/\d{2}$/.test(val), {
-    message: "Expiry date must be in MM/YY format.",
-  }),
-  cvc: z.string().refine((val) => !val || (val.length >= 3 && val.length <= 4), {
-    message: "CVC must be 3-4 digits.",
-  }),
+  cardNumber: z.string().optional(),
+  expiryDate: z.string().optional(),
+  cvc: z.string().optional(),
   brand: z.string().optional(),
   adminInstruction: z.string().optional(),
 });
