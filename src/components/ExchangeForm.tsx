@@ -448,6 +448,12 @@ export default function ExchangeForm() {
                         <span>Rate: {rateText}</span>
                     </div>
                 )}
+                {transactionFee > 0 && (
+                     <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                        <Info className="h-4 w-4" />
+                        <span>Fee: {transactionFee.toFixed(2)} {sendMethod.currency}</span>
+                    </div>
+                )}
                 {currentLimit && (
                     <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
                         <Info className="h-4 w-4" />

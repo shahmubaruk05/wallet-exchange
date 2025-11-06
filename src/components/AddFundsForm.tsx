@@ -334,6 +334,12 @@ export default function AddFundsForm() {
                         <span>Rate: {rateText}</span>
                     </div>
                 )}
+                {transactionFee > 0 && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                        <Info className="h-4 w-4" />
+                        <span>Fee: {transactionFee.toFixed(2)} {sendMethod.currency}</span>
+                    </div>
+                )}
                  {currentLimit && (
                     <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
                         <Info className="h-4 w-4" />
@@ -464,7 +470,7 @@ export default function AddFundsForm() {
             </div>
             </CardContent>
             <CardFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <Button type="submit" className="w-full sm:w-auto flex-grow">
@@ -509,5 +515,3 @@ export default function AddFundsForm() {
       return renderForm();
   }
 }
-
-    
