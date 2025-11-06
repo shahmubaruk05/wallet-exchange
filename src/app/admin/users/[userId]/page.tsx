@@ -101,8 +101,7 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
   const fullName = [userData.firstName, userData.lastName].filter(Boolean).join(' ');
   
   const getWithdrawalCurrency = (tx: Transaction) => {
-    if (tx.transactionType === 'CARD_TOP_UP') return 'USD';
-    if (tx.transactionType === 'ADD_FUNDS') return 'BDT';
+    if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance') return 'USD';
     return 'BDT';
   }
 
@@ -132,7 +131,7 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
              <CardContent>
                 <div className="p-4 rounded-lg bg-muted">
                     <div className="text-sm text-muted-foreground">Wallet Balance</div>
-                    <div className="text-2xl font-bold">{(userData.walletBalance ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'BDT' })}</div>
+                    <div className="text-2xl font-bold">{(userData.walletBalance ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
                 </div>
                 <UserDetailsForm userData={userData} userId={userId} />
              </CardContent>
@@ -194,10 +193,8 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {tx.transactionType === "CARD_TOP_UP" ? (
+                              {tx.transactionType === "CARD_TOP_UP" || tx.withdrawalMethod === "Wallet Balance" ? (
                                 <DollarSign className="h-5 w-5 text-primary" />
-                              ) : tx.transactionType === 'ADD_FUNDS' ? (
-                                <Landmark className="h-5 w-5 text-primary" />
                               ) : (
                                 <PaymentIcon
                                   id={tx.withdrawalMethod.toLowerCase()}
@@ -233,3 +230,5 @@ const UserDetailsPage = ({ params }: { params: { userId: string } }) => {
 };
 
 export default UserDetailsPage;
+
+    

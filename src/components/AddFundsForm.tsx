@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, Landmark } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarSign } from "lucide-react";
 import { paymentMethods, type ExchangeLimit } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
@@ -66,10 +66,10 @@ export default function AddFundsForm() {
   const { data: limitsData } = useCollection<ExchangeLimit>(exchangeLimitsQuery);
 
   const exchangeRates = useMemo(() => {
-    if (!exchangeRatesData) return { USD_TO_BDT: 122.0 };
-    const usdToBdtRateDoc = exchangeRatesData.find(rate => rate.fromCurrency === 'USD' && rate.toCurrency === 'BDT');
+    if (!exchangeRatesData) return { BDT_TO_USD_RATE: 127.0 };
+    const bdtToUsdRateDoc = exchangeRatesData.find(rate => rate.fromCurrency === 'BDT' && rate.toCurrency === 'USD');
     return {
-      USD_TO_BDT: usdToBdtRateDoc?.rate || 122.0,
+      BDT_TO_USD_RATE: bdtToUsdRateDoc?.rate || 127.0,
     };
   }, [exchangeRatesData]);
 
@@ -110,10 +110,10 @@ export default function AddFundsForm() {
       setIsCalculating(true);
       
       let rateString = "";
-      if (sendMethod.currency === "USD") {
-          rateString = `1 USD = ${exchangeRates.USD_TO_BDT} BDT`;
-      } else if (sendMethod.currency === "BDT") {
-          rateString = `1 BDT = 1 BDT`;
+      if (sendMethod.currency === "BDT") {
+          rateString = `1 USD = ${exchangeRates.BDT_TO_USD_RATE} BDT`;
+      } else if (sendMethod.currency === "USD") {
+          rateString = `1 USD = 1 USD`;
       }
 
       if (lastEdited === 'send') {
@@ -131,9 +131,9 @@ export default function AddFundsForm() {
         const amountAfterFee = amount - fee;
 
         let result = 0;
-        if (sendMethod.currency === "USD") {
-          result = amountAfterFee * exchangeRates.USD_TO_BDT;
-        } else { // BDT or other
+        if (sendMethod.currency === "BDT") {
+          result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
+        } else { // USD or other
           result = amountAfterFee;
         }
         setReceiveAmount(result > 0 ? result.toFixed(2) : "");
@@ -149,9 +149,9 @@ export default function AddFundsForm() {
         }
 
         let amountBeforeFee = 0;
-        if (sendMethod.currency === "USD") {
-            amountBeforeFee = amount / exchangeRates.USD_TO_BDT;
-        } else { // BDT or other
+        if (sendMethod.currency === "BDT") {
+            amountBeforeFee = amount * exchangeRates.BDT_TO_USD_RATE;
+        } else { // USD or other
             amountBeforeFee = amount;
         }
 
@@ -349,7 +349,7 @@ export default function AddFundsForm() {
                 <Label>You Get (in Wallet)</Label>
                  <div className="h-12 flex items-center gap-3">
                      <div className="flex items-center justify-center w-10 h-10 rounded-md bg-muted">
-                        <Landmark className="h-6 w-6 text-primary"/>
+                        <DollarSign className="h-6 w-6 text-primary"/>
                      </div>
                     <span className="font-bold text-lg">Wallet Balance</span>
                 </div>
@@ -366,7 +366,7 @@ export default function AddFundsForm() {
                 step="0.01"
             />
             <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground font-semibold">
-                BDT
+                USD
             </span>
             {isCalculating && lastEdited === 'send' && <Loader2 className="absolute top-1/2 -translate-y-1/2 right-20 h-5 w-5 animate-spin text-primary" />}
             </div>
@@ -456,8 +456,8 @@ export default function AddFundsForm() {
                     <div className="flex justify-between items-center text-base">
                         <span className="text-muted-foreground">You will receive in wallet</span>
                         <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
-                        <Landmark className="w-5 h-5 text-primary"/>
-                        {receiveAmount} BDT
+                        <DollarSign className="w-5 h-5 text-primary"/>
+                        {receiveAmount} USD
                         </span>
                     </div>
                 </div>
@@ -509,3 +509,5 @@ export default function AddFundsForm() {
       return renderForm();
   }
 }
+
+    

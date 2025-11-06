@@ -136,7 +136,7 @@ export function UserDetailsForm({ userData, userId }: UserDetailsFormProps) {
           name="walletBalance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Wallet Balance (BDT)</FormLabel>
+              <FormLabel>Wallet Balance (USD)</FormLabel>
               <FormControl>
                 <Input type="number" {...field} />
               </FormControl>
@@ -173,3 +173,5 @@ export function UserDetailsForm({ userData, userId }: UserDetailsFormProps) {
     </Form>
   );
 }
+
+    

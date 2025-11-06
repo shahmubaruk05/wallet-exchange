@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -102,7 +103,7 @@ export default function DashboardLayout({
                     <div className="p-2 rounded-lg bg-sidebar-accent">
                         <div className="text-xs text-sidebar-accent-foreground/80">Wallet Balance</div>
                         <div className="text-lg font-bold text-sidebar-accent-foreground">
-                            {walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'BDT' })}
+                            {walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -127,3 +128,5 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+
+    

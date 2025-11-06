@@ -129,6 +129,13 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </div>
   );
 
+  const getReceivedCurrency = () => {
+    if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance') {
+      return 'USD';
+    }
+    return 'BDT';
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -171,14 +178,10 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                     label="You Received" 
                     value={
                         <div className="flex items-center gap-2 justify-end">
-                            <span>{tx.receivedAmount.toFixed(2)} {
-                              tx.transactionType === 'CARD_TOP_UP' ? 'USD' : (tx.withdrawalMethod === 'Wallet Balance' ? 'BDT' : 'BDT')
-                            }</span>
-                            {tx.transactionType === 'CARD_TOP_UP' ? (
+                            <span>{tx.receivedAmount.toFixed(2)} {getReceivedCurrency()}</span>
+                            {tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance' ? (
                               <DollarSign className="h-5 w-5 text-primary" />
-                            ) : tx.withdrawalMethod === 'Wallet Balance' ? (
-                                <Landmark className="h-5 w-5 text-primary"/>
-                            ): (
+                            ) : (
                               <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
                             )}
                         </div>
@@ -243,3 +246,5 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
+
+    

@@ -12,7 +12,7 @@ export const paymentMethods: PaymentMethod[] = [
   { id: "paypal", name: "PayPal", currency: "USD", type: "e-wallet" },
   { id: "payoneer", name: "Payoneer", currency: "USD", type: "e-wallet" },
   { id: "wise", name: "Wise", currency: "USD", type: "e-wallet" },
-  { id: "wallet", name: "Wallet Balance", currency: "BDT", type: "wallet" },
+  { id: "wallet", name: "Wallet Balance", currency: "USD", type: "wallet" },
   { id: "virtual_card_top_up", name: "Virtual Card Top Up", currency: "USD", type: "virtual-card"},
 ];
 
@@ -113,3 +113,5 @@ export type User = {
   role?: 'admin' | 'user';
   walletBalance?: number;
 }
+
+    
