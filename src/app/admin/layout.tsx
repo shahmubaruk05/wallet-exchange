@@ -10,7 +10,8 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, Coins, History, PanelLeft, CreditCard, DollarSign, Users, Scaling } from "lucide-react";
+import { Coins, History, CreditCard, DollarSign, Users, Scaling } from "lucide-react";
+import Logo from "@/components/Logo";
 
 export default function AdminLayout({
   children,
@@ -22,8 +23,7 @@ export default function AdminLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-             <ArrowLeftRight className="h-6 w-6 text-primary" />
-             <span className="font-bold text-lg">Admin Panel</span>
+             <Logo className="h-8 w-auto text-primary" />
           </div>
         </SidebarHeader>
         <SidebarContent>

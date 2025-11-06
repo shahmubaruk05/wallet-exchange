@@ -1,6 +1,6 @@
 
 import Link from "next/link";
-import { ArrowLeftRight } from "lucide-react";
+import Logo from "./Logo";
 
 const Footer = () => {
   return (
@@ -9,10 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <ArrowLeftRight className="h-7 w-7 text-primary" />
-              <span className="text-xl font-bold text-slate-900 dark:text-slate-50">
-                Wallet Exchange
-              </span>
+              <Logo className="h-10 w-auto" />
             </Link>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xs">
               Your reliable partner for digital wallet exchange and virtual
