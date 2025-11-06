@@ -21,11 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarSign } from "lucide-react";
-import { paymentMethods, type ExchangeLimit } from "@/lib/data";
+import { paymentMethods, type ExchangeLimit, type User } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useFirestore, useUser, useCollection, useMemoFirebase, runTransactionNonBlocking, useDoc } from "@/firebase";
+import { collection, doc, serverTimestamp, increment } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from "next/link";
 
@@ -34,10 +34,10 @@ type LastEdited = "send" | "receive";
 
 export default function CardTopUpPage() {
   const [step, setStep] = useState<Step>("form");
-  const [sendAmount, setSendAmount] = useState<string>("1000");
+  const [sendAmount, setSendAmount] = useState<string>("50");
   const [receiveAmount, setReceiveAmount] = useState<string>("");
   const [lastEdited, setLastEdited] = useState<LastEdited>("send");
-  const [sendMethodId, setSendMethodId] = useState<string>("bkash");
+  const [sendMethodId, setSendMethodId] = useState<string>("wallet");
   const [isCalculating, setIsCalculating] = useState(false);
   const [rateText, setRateText] = useState<string>("");
   const [copied, setCopied] = useState(false);
@@ -50,6 +50,14 @@ export default function CardTopUpPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+   const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc<User>(userDocRef);
+  const walletBalance = userData?.walletBalance ?? 0;
 
   const exchangeRatesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -97,6 +105,15 @@ export default function CardTopUpPage() {
   };
 
   useEffect(() => {
+     if (sendMethod.id === 'wallet') {
+      setTransactionFee(0);
+      const amount = parseFloat(sendAmount);
+      setReceiveAmount(isNaN(amount) ? "" : amount.toFixed(2));
+      setRateText("1 USD = 1 USD (Wallet)");
+      setIsCalculating(false);
+      return;
+    }
+
     const feePercentages: { [key: string]: number } = {
       bkash: 0.0185,
       nagad: 0.014,
@@ -174,6 +191,15 @@ export default function CardTopUpPage() {
     e.preventDefault();
     const sendAmountNum = parseFloat(sendAmount);
 
+    if (!user) {
+        toast({
+            title: "Authentication Required",
+            description: "Please log in to top up your card.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     if (isNaN(sendAmountNum) || sendAmountNum <= 0) {
       toast({
         title: "Invalid Amount",
@@ -182,6 +208,18 @@ export default function CardTopUpPage() {
       });
       return;
     }
+    
+    if (sendMethod.id === 'wallet') {
+      if (sendAmountNum > walletBalance) {
+        toast({
+          title: "Insufficient Wallet Balance",
+          description: `You only have ${walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} available.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
 
     if (currentLimit) {
       if (sendAmountNum < currentLimit.minAmount) {
@@ -200,8 +238,7 @@ export default function CardTopUpPage() {
         });
         return;
       }
-    } else {
-        // Fallback or default check if no specific limit is found
+    } else if (sendMethod.id !== 'wallet') {
         const receiveAmountNum = parseFloat(receiveAmount);
         if (receiveAmountNum < 50) {
             toast({
@@ -212,20 +249,67 @@ export default function CardTopUpPage() {
             return;
         }
     }
-
-    if (!user) {
-        toast({
-            title: "Authentication Required",
-            description: "Please log in to top up your card.",
-            variant: "destructive",
-        });
-        return;
-    }
     setStep("confirm");
+  };
+
+  const handleWalletConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !firestore || !userDocRef) return;
+
+    const amountToDeduct = parseFloat(sendAmount);
+    if (amountToDeduct > walletBalance) {
+       toast({ title: "Insufficient Balance", description: "Your wallet balance is too low for this transaction.", variant: "destructive" });
+       setStep('form');
+       return;
+    }
+
+    await runTransactionNonBlocking(firestore, async (transaction) => {
+      const userSnapshot = await transaction.get(userDocRef);
+      const currentBalance = userSnapshot.data()?.walletBalance ?? 0;
+      
+      if (currentBalance < amountToDeduct) {
+        throw new Error("Insufficient balance.");
+      }
+
+      // Deduct from wallet
+      transaction.update(userDocRef, { walletBalance: increment(-amountToDeduct) });
+
+      // Create a completed transaction log
+      const newTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
+      transaction.set(newTxRef, {
+        userId: user.uid,
+        paymentMethod: sendMethod.name,
+        withdrawalMethod: "Virtual Card Top Up",
+        amount: amountToDeduct,
+        currency: sendMethod.currency,
+        receivedAmount: parseFloat(receiveAmount),
+        status: "Completed" as const,
+        transactionDate: new Date().toISOString(),
+        sendingAccountId: "Wallet",
+        transactionId: `WALLET_TOPUP_${Date.now()}`,
+        receivingAccountId: "N/A - Card Top Up",
+        transactionFee: 0,
+        adminNote: "Completed instantly from wallet balance.",
+        transactionType: 'CARD_TOP_UP' as const,
+        exchangeRateId: "N/A",
+      });
+    });
+
+    toast({
+      title: "Top-Up Successful!",
+      description: "Funds have been added to your card from your wallet.",
+      className: "bg-accent text-accent-foreground",
+    });
+    setStep("status");
   };
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (sendMethod.id === 'wallet') {
+      handleWalletConfirm(e);
+      return;
+    }
+
     if (!user || !firestore) return;
      if (!sendingAccountId || !transactionId) {
       toast({
@@ -267,10 +351,10 @@ export default function CardTopUpPage() {
   
   const startNewTransaction = () => {
     setStep('form');
-    setSendAmount('1000');
+    setSendAmount('50');
     setReceiveAmount('');
     setLastEdited('send');
-    setSendMethodId('bkash');
+    setSendMethodId('wallet');
     setSendingAccountId('');
     setTransactionId('');
   }
@@ -320,7 +404,7 @@ export default function CardTopUpPage() {
                     </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                    {paymentMethods.filter(m => m.id !== 'virtual_card_top_up').map((method) => (
+                    {paymentMethods.filter(m => m.type !== 'virtual-card').map((method) => (
                         <SelectItem key={method.id} value={method.id}>
                         <div className="flex items-center gap-3">
                             <PaymentIcon id={method.id} />
@@ -409,6 +493,58 @@ export default function CardTopUpPage() {
   );
 
   const renderConfirm = () => {
+     if (sendMethod.id === 'wallet') {
+        return (
+            <div className="container mx-auto max-w-2xl px-4 py-8">
+                 <div className="text-center mb-8">
+                    <h1 className="text-4xl font-bold tracking-tight text-primary-foreground sm:text-5xl">
+                    Confirm Top Up from Wallet
+                    </h1>
+                </div>
+                <Card className="w-full shadow-lg">
+                    <CardHeader>
+                        <CardTitle>Review Your Top Up</CardTitle>
+                        <CardDescription>Confirm the details below to top up your card from your wallet balance.</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleConfirm}>
+                        <CardContent className="space-y-4">
+                            <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm mt-4">
+                                <div className="flex justify-between items-center text-base">
+                                    <span className="text-muted-foreground">Your Current Wallet Balance</span>
+                                    <span className="font-bold text-lg text-accent-foreground">
+                                        {walletBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Amount to send</span>
+                                    <span className="font-semibold flex items-center gap-2">
+                                        <PaymentIcon id={sendMethod.id} className="w-5 h-5"/>
+                                        {parseFloat(sendAmount).toFixed(2)} {sendMethod.currency}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-base">
+                                    <span className="text-muted-foreground">You will receive on card</span>
+                                    <span className="font-bold text-lg text-accent-foreground flex items-center gap-2">
+                                        <DollarSign className="w-5 h-5 text-primary"/>
+                                        {receiveAmount} USD
+                                    </span>
+                                </div>
+                            </div>
+                        </CardContent>
+                         <CardFooter className="flex-col sm:flex-row gap-2">
+                            <Button variant="outline" onClick={() => setStep('form')} className="w-full sm:w-auto">
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                            </Button>
+                            <Button type="submit" className="w-full sm:w-auto flex-grow">
+                                Confirm Top Up
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Card>
+            </div>
+        )
+    }
+
     const paymentInstructions: { [key: string]: string } = {
       bkash: '01903068730',
       nagad: '01707170717',
@@ -516,7 +652,7 @@ export default function CardTopUpPage() {
                 <CheckCircle className="w-16 h-16 text-accent animate-pulse" />
                 <h2 className="text-2xl font-bold">Top Up Request Received!</h2>
                 <p className="text-muted-foreground">
-                Your request is now <span className="text-primary font-semibold">Pending</span>. You will be notified once it's completed.
+                Your request is now <span className="text-primary font-semibold">{sendMethod.id === 'wallet' ? 'Completed' : 'Pending'}</span>. You will be notified once it's completed.
                 </p>
                 <div className="w-full pt-4 flex flex-col sm:flex-row gap-2">
                 <Button onClick={startNewTransaction} className="w-full">
