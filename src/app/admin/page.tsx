@@ -38,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO, isToday, subDays, startOfMonth, endOfMonth } from "date-fns";
-import { useFirestore, useUser, useAuth, useMemoFirebase } from "@/firebase";
+import { useFirestore, useUser, useAuth, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import {
   collection,
   query,
@@ -174,7 +174,6 @@ const AdminDashboard = () => {
       if (!firestore) return;
       setIsLoading(true);
       try {
-        // Fetch all transactions
         const transactionsQuery = query(
           collectionGroup(firestore, "transactions"),
           orderBy("transactionDate", "desc")
@@ -185,12 +184,16 @@ const AdminDashboard = () => {
         );
         setAllTransactions(transactions);
 
-        // Fetch all users
         const usersSnapshot = await getDocs(collection(firestore, "users"));
         const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         setUsers(usersList);
 
-      } catch (error) {
+      } catch (error: any) {
+        const permissionError = new FirestorePermissionError({
+          path: `transactions (collectionGroup)`,
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         console.error("Error fetching all transactions or users:", error);
       } finally {
         setIsLoading(false);

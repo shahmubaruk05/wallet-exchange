@@ -18,7 +18,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore } from "@/firebase";
+import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collectionGroup, query, where, orderBy, getDocs, collection } from "firebase/firestore";
 import type { Transaction, TransactionStatus, User } from "@/lib/data";
 import { format, parseISO } from "date-fns";
@@ -72,7 +72,12 @@ const AdminTopUpPage = () => {
         const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         setUsers(usersList);
 
-      } catch (error) {
+      } catch (error: any) {
+        const permissionError = new FirestorePermissionError({
+          path: `transactions (collectionGroup)`,
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         console.error("Error fetching card top-ups:", error);
       } finally {
         setIsLoading(false);

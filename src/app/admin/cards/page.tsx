@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import {
   useFirestore,
   useMemoFirebase,
+  errorEmitter,
+  FirestorePermissionError,
 } from "@/firebase";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import type { CardApplication, User } from "@/lib/data";
@@ -72,7 +74,12 @@ const AdminCardManagementPage = () => {
         const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         setUsers(usersList);
 
-      } catch (error) {
+      } catch (error: any) {
+        const permissionError = new FirestorePermissionError({
+          path: `card_applications`,
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         console.error("Error fetching card applications or users:", error);
       } finally {
         setIsLoading(false);
