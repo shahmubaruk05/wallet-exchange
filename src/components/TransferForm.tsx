@@ -25,13 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, collection, where, query, getDocs } from "firebase/firestore";
+import { doc, runTransaction, collection, where, query, getDocs, DocumentSnapshot, DocumentData } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Loader2, ArrowRight } from "lucide-react";
 import Link from 'next/link';
 
 const formSchema = z.object({
-  recipientEmail: z.string().email({ message: "Invalid email address." }),
+  recipientIdentifier: z.string().min(1, { message: "Recipient email or ID is required." }),
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
 });
 
@@ -53,7 +53,7 @@ export default function TransferForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      recipientEmail: "",
+      recipientIdentifier: "",
       amount: 0,
     },
   });
@@ -63,8 +63,8 @@ export default function TransferForm() {
       toast({ title: "Error", description: "You must be logged in to transfer funds.", variant: "destructive" });
       return;
     }
-
-    if (values.recipientEmail === user.email) {
+    
+    if (values.recipientIdentifier === user.email || values.recipientIdentifier === user.uid) {
       toast({ title: "Invalid Recipient", description: "You cannot transfer funds to yourself.", variant: "destructive" });
       return;
     }
@@ -77,19 +77,41 @@ export default function TransferForm() {
     setIsSubmitting(true);
 
     try {
-      const recipientQuery = query(collection(firestore, "users"), where("email", "==", values.recipientEmail));
-      const recipientSnapshot = await getDocs(recipientQuery);
+      let recipientDoc: DocumentSnapshot<DocumentData> | null = null;
+      
+      // 1. Try to get user by ID directly
+      const recipientRefById = doc(firestore, "users", values.recipientIdentifier);
+      const docSnap = await getDocs(query(collection(firestore, "users"), where('__name__', '==', values.recipientIdentifier)));
 
-      if (recipientSnapshot.empty) {
-        toast({ title: "Recipient Not Found", description: "No user found with that email address.", variant: "destructive" });
+      if (!docSnap.empty) {
+        recipientDoc = docSnap.docs[0];
+      } else {
+        // 2. If not found by ID, try to get user by email
+        const recipientQuery = query(collection(firestore, "users"), where("email", "==", values.recipientIdentifier));
+        const recipientSnapshot = await getDocs(recipientQuery);
+
+        if (!recipientSnapshot.empty) {
+          recipientDoc = recipientSnapshot.docs[0];
+        }
+      }
+
+
+      if (!recipientDoc) {
+        toast({ title: "Recipient Not Found", description: "No user found with that email or ID.", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
 
-      const recipientDoc = recipientSnapshot.docs[0];
       const recipientData = recipientDoc.data() as User;
       const recipientId = recipientDoc.id;
       
+      // Final self-transfer check with resolved ID/email
+      if (recipientId === user.uid) {
+        toast({ title: "Invalid Recipient", description: "You cannot transfer funds to yourself.", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+
       await runTransaction(firestore, async (transaction) => {
         const senderRef = doc(firestore, "users", user.uid);
         const recipientRef = doc(firestore, "users", recipientId);
@@ -103,10 +125,12 @@ export default function TransferForm() {
         transaction.update(senderRef, { walletBalance: (senderDoc.data().walletBalance ?? 0) - values.amount });
 
         // Increment recipient's balance
-        const recipientCurrentBalance = (recipientDoc.data().walletBalance ?? 0);
+        const recipientCurrentBalance = (recipientDoc?.data()?.walletBalance ?? 0);
         transaction.update(recipientRef, { walletBalance: recipientCurrentBalance + values.amount });
 
         const now = new Date().toISOString();
+        const recipientEmail = recipientData.email;
+
 
         // Create sender's transaction log
         const senderTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
@@ -114,7 +138,7 @@ export default function TransferForm() {
             userId: user.uid,
             transactionType: 'WALLET_TRANSFER',
             paymentMethod: 'Wallet Balance',
-            withdrawalMethod: `Sent to ${values.recipientEmail}`,
+            withdrawalMethod: `Sent to ${recipientEmail}`,
             amount: values.amount,
             currency: 'USD',
             receivedAmount: values.amount,
@@ -124,7 +148,7 @@ export default function TransferForm() {
                 senderId: user.uid,
                 senderEmail: user.email,
                 recipientId: recipientId,
-                recipientEmail: values.recipientEmail,
+                recipientEmail: recipientEmail,
             },
         });
         
@@ -144,12 +168,12 @@ export default function TransferForm() {
                 senderId: user.uid,
                 senderEmail: user.email,
                 recipientId: recipientId,
-                recipientEmail: values.recipientEmail,
+                recipientEmail: recipientEmail,
             },
         });
       });
 
-      toast({ title: "Transfer Successful!", description: `${values.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} sent to ${values.recipientEmail}.`, className: "bg-accent text-accent-foreground" });
+      toast({ title: "Transfer Successful!", description: `${values.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} sent to ${recipientData.email}.`, className: "bg-accent text-accent-foreground" });
       setIsSuccess(true);
     } catch (error: any) {
         console.error("Transfer failed: ", error);
@@ -195,12 +219,12 @@ export default function TransferForm() {
           <CardContent className="space-y-6">
             <FormField
               control={form.control}
-              name="recipientEmail"
+              name="recipientIdentifier"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Recipient's Email</FormLabel>
+                  <FormLabel>Recipient's Email or User ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="recipient@example.com" {...field} />
+                    <Input placeholder="recipient@example.com or user-id" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
