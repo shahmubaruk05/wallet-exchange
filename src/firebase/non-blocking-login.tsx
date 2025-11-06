@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Auth, // Import Auth type for type hinting
@@ -7,6 +8,9 @@ import {
   sendPasswordResetEmail,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+
+type ErrorCallback = (error: FirebaseError) => void;
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): void {
@@ -16,9 +20,16 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 }
 
 /** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
+export function initiateEmailSignUp(authInstance: Auth, email: string, password: string, onError?: ErrorCallback): void {
   // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
-  createUserWithEmailAndPassword(authInstance, email, password);
+  createUserWithEmailAndPassword(authInstance, email, password)
+    .catch((error: FirebaseError) => {
+        if (onError) {
+            onError(error);
+        } else {
+            console.error("Signup error:", error);
+        }
+    });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 

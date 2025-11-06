@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -26,6 +27,7 @@ import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import AuthRedirect from "@/components/auth/AuthRedirect";
 import { useUser } from "@/firebase";
+import { FirebaseError } from "firebase/app";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -51,11 +53,27 @@ export default function SignupPage() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    initiateEmailSignUp(auth, values.email, values.password);
-    toast({
-        title: "Creating account...",
-        description: "You will be redirected shortly.",
-      });
+    initiateEmailSignUp(auth, values.email, values.password, (error: FirebaseError) => {
+        if (error.code === 'auth/email-already-in-use') {
+            form.setError('email', {
+                type: 'manual',
+                message: 'This email is already in use. Please use a different email or log in.',
+            });
+        } else {
+             toast({
+                title: "Signup Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
+    });
+    
+    if (!form.formState.errors.email) {
+        toast({
+            title: "Creating account...",
+            description: "You will be redirected shortly.",
+        });
+    }
   };
 
   return (
