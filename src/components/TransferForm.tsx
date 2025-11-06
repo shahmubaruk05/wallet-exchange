@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, collection, where, query, getDocs, DocumentSnapshot, DocumentData } from "firebase/firestore";
+import { doc, runTransaction, collection, where, query, getDocs, DocumentSnapshot, DocumentData, getDoc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Loader2, ArrowRight } from "lucide-react";
 import Link from 'next/link';
@@ -81,10 +81,10 @@ export default function TransferForm() {
       
       // 1. Try to get user by ID directly
       const recipientRefById = doc(firestore, "users", values.recipientIdentifier);
-      const docSnap = await getDocs(query(collection(firestore, "users"), where('__name__', '==', values.recipientIdentifier)));
+      const docSnapById = await getDoc(recipientRefById);
 
-      if (!docSnap.empty) {
-        recipientDoc = docSnap.docs[0];
+      if (docSnapById.exists()) {
+        recipientDoc = docSnapById;
       } else {
         // 2. If not found by ID, try to get user by email
         const recipientQuery = query(collection(firestore, "users"), where("email", "==", values.recipientIdentifier));
