@@ -32,8 +32,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Clock, XCircle, Info, DollarSign, History } from "lucide-react";
-import type { CardApplication } from "@/lib/data";
+import { Loader2, Clock, XCircle, Info, DollarSign, History, Wallet } from "lucide-react";
+import type { CardApplication, User } from "@/lib/data";
 import VirtualCard from "@/components/VirtualCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
@@ -55,8 +55,15 @@ const UserCardPage = () => {
     return doc(firestore, `card_applications/${user.uid}`);
   }, [firestore, user]);
 
-  const { data: application, isLoading } =
+  const { data: application, isLoading: isApplicationLoading } =
     useDoc<CardApplication>(applicationRef);
+    
+  const userRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isUserLoading } = useDoc<User>(userRef);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +77,15 @@ const UserCardPage = () => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!user || !applicationRef) return;
+    
+    if ((userData?.walletBalance ?? 0) < 10) {
+        toast({
+            title: "Insufficient Balance",
+            description: "You need at least $10 in your wallet to apply for a card.",
+            variant: "destructive",
+        });
+        return;
+    }
 
     const newApplicationData = {
       ...values,
@@ -88,7 +104,7 @@ const UserCardPage = () => {
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isApplicationLoading || isUserLoading) {
       return (
         <div className="flex justify-center items-center h-40">
           <Loader2 className="h-8 w-8 animate-spin" />
@@ -166,13 +182,30 @@ const UserCardPage = () => {
           );
       }
     }
+    
+    // User has not applied yet, check balance
+    if ((userData?.walletBalance ?? 0) < 10) {
+        return (
+            <Alert variant="destructive">
+                <Wallet className="h-4 w-4" />
+                <AlertTitle>Insufficient Balance</AlertTitle>
+                <AlertDescription>
+                    You need a minimum balance of $10 in your wallet to apply for a virtual card. Your current balance is <strong>${(userData?.walletBalance ?? 0).toFixed(2)}</strong>.
+                    <Button asChild className="mt-4 w-full">
+                        <Link href="/dashboard/add-funds">Add Funds Now</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )
+    }
+
 
     return (
       <Card>
         <CardHeader>
           <CardTitle>Apply for a Virtual Card</CardTitle>
           <CardDescription>
-            Fill out the form below to apply for your Mercury virtual card.
+            Fill out the form below to apply for your Mercury virtual card. A minimum balance of $10 is required.
           </CardDescription>
         </CardHeader>
         <CardContent>
