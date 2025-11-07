@@ -91,44 +91,33 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   const handleStatusUpdate = async (newStatus: TransactionStatus) => {
     if (!firestore || !user || tx.status === newStatus) return;
   
-    // Determine the primary reference based on whether it's an admin page or user dashboard
-    const primaryTxCollection = pathname.startsWith('/admin') ? 'transactions' : `users/${tx.userId}/transactions`;
-    const primaryTxRef = doc(firestore, primaryTxCollection, tx.id);
+    const rootTxRef = doc(firestore, 'transactions', tx.id);
+    const userTxRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
   
     try {
       await runTransaction(firestore, async (firestoreTransaction) => {
-        const primaryTxDoc = await firestoreTransaction.get(primaryTxRef);
-        if (!primaryTxDoc.exists()) {
-          throw new Error(`Transaction document ${tx.id} not found in ${primaryTxCollection}.`);
-        }
+        // --- READS FIRST ---
+        const rootTxDoc = await firestoreTransaction.get(rootTxRef);
+        const userTxDoc = await firestoreTransaction.get(userTxRef);
   
-        const originalStatus = primaryTxDoc.data().status;
+        const originalStatus = rootTxDoc.exists() ? rootTxDoc.data().status : (userTxDoc.exists() ? userTxDoc.data().status : null);
         const alreadyCompleted = originalStatus === 'Completed';
   
+        // --- WRITES SECOND ---
         const updateData = { 
           status: newStatus, 
           adminNote, 
           updatedAt: serverTimestamp() 
         };
   
-        // 1. Update the primary document (either root or user subcollection)
-        firestoreTransaction.update(primaryTxRef, updateData);
+        // 1. Update the root transaction document if it exists
+        if (rootTxDoc.exists()) {
+          firestoreTransaction.update(rootTxRef, updateData);
+        }
   
-        // 2. Update the other document if it exists
-        if (pathname.startsWith('/admin')) {
-          // Admin is updating, so the other doc is in the user's subcollection
-          const userTxRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
-          const userTxDoc = await firestoreTransaction.get(userTxRef);
-          if (userTxDoc.exists()) {
-            firestoreTransaction.update(userTxRef, updateData);
-          }
-        } else {
-          // User is updating (hypothetically), so the other doc is in the root collection
-          const rootTxRef = doc(firestore, 'transactions', tx.id);
-          const rootTxDoc = await firestoreTransaction.get(rootTxRef);
-          if (rootTxDoc.exists()) {
-            firestoreTransaction.update(rootTxRef, updateData);
-          }
+        // 2. Update the user's subcollection document if it exists
+        if (userTxDoc.exists()) {
+          firestoreTransaction.update(userTxRef, updateData);
         }
   
         // 3. Handle balance updates if moving to "Completed" for the first time
@@ -136,6 +125,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
           const isDeposit = tx.transactionType === 'ADD_FUNDS' || (tx.transactionType === 'EXCHANGE' && tx.withdrawalMethod === 'Wallet Balance');
           if (isDeposit) {
             const targetUserRef = doc(firestore, 'users', tx.userId);
+            // No need to read the user doc again if we just increment
             firestoreTransaction.update(targetUserRef, {
               walletBalance: increment(tx.receivedAmount)
             });
@@ -159,7 +149,6 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
       });
     }
   };
-  
 
   const getReceivedCurrency = () => {
     if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance') {
