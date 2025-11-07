@@ -97,21 +97,35 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   
     try {
       await runTransaction(firestore, async (firestoreTransaction) => {
+        const rootTxDoc = await firestoreTransaction.get(rootTxRef);
         const userTxDoc = await firestoreTransaction.get(userTxRef);
+  
+        if (!rootTxDoc.exists()) {
+          throw new Error("Transaction does not exist in root collection.");
+        }
         
-        if (userTxDoc.exists() && userTxDoc.data().status === 'Completed' && newStatus === 'Completed') {
-          const updateData = { adminNote, updatedAt: serverTimestamp() };
+        // This is the original status before we update it.
+        const originalStatus = rootTxDoc.data().status;
+        const alreadyCompleted = originalStatus === 'Completed';
+  
+        const updateData = { 
+          status: newStatus, 
+          adminNote, 
+          updatedAt: serverTimestamp() 
+        };
+  
+        // Always update the root transaction document
+        firestoreTransaction.update(rootTxRef, updateData);
+  
+        // Only update the user sub-collection document if it exists
+        if (userTxDoc.exists()) {
           firestoreTransaction.update(userTxRef, updateData);
-          if (isAdmin) firestoreTransaction.update(rootTxRef, updateData);
-          return;
         }
   
-        const updateData = { status: newStatus, adminNote, updatedAt: serverTimestamp() };
-        firestoreTransaction.update(userTxRef, updateData);
-        if (isAdmin) firestoreTransaction.update(rootTxRef, updateData);
-  
-        if ((tx.transactionType === 'ADD_FUNDS' || tx.transactionType === 'EXCHANGE' && tx.withdrawalMethod === 'Wallet Balance') && newStatus === 'Completed') {
-          if (userTxDoc.exists() && userTxDoc.data().status !== 'Completed') {
+        // If the transaction is moving to "Completed" for the first time...
+        if (newStatus === 'Completed' && !alreadyCompleted) {
+          const isDeposit = tx.transactionType === 'ADD_FUNDS' || (tx.transactionType === 'EXCHANGE' && tx.withdrawalMethod === 'Wallet Balance');
+          if (isDeposit) {
             firestoreTransaction.update(targetUserRef, {
               walletBalance: increment(tx.receivedAmount)
             });
