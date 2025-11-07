@@ -23,7 +23,7 @@ const Footer = () => {
             <ul className="mt-4 space-y-2">
               <li>
                 <Link
-                  href="#"
+                  href="/privacy-policy"
                   className="text-base text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary"
                 >
                   Privacy Policy
@@ -46,7 +46,7 @@ const Footer = () => {
             <ul className="mt-4 space-y-2">
               <li>
                 <a
-                  href="mailto:support@walletxchanger.com"
+                  href="mailto:info@walletexchangebd.com"
                   className="text-base text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary"
                 >
                   Contact Us
