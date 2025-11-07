@@ -25,18 +25,20 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // 🌍 Root-level transactions log (admin dashboard + client create)
+    // 🌍 Root-level transactions log (transfer history)
     match /transactions/{txId} {
-      // নতুন transaction create: owner বা admin
-      allow create: if request.auth != null &&
-        (
-          request.resource.data.userId == request.auth.uid || // transaction এ userId ফিল্ড থাকবে
-          isAdmin()
-        );
+      // যে কোনো logged-in user নতুন transaction create করতে পারবে
+      allow create: if request.auth != null;
 
-      // read: owner নিজেরটা, admin সব
+      // transaction পড়া যাবে:
+      // - admin সব দেখতে পারবে
+      // - সাধারণ user শুধু নিজেরটা (যদি userId, fromUserId, senderId এর যেকোনোটাতে থাকে)
       allow read: if isAdmin() ||
-        (request.auth != null && resource.data.userId == request.auth.uid);
+        (request.auth != null && (
+          resource.data.userId == request.auth.uid ||
+          resource.data.fromUserId == request.auth.uid ||
+          resource.data.senderId == request.auth.uid
+        ));
 
       // update/delete: শুধু admin
       allow update, delete: if isAdmin();
