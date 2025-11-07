@@ -32,13 +32,15 @@ service cloud.firestore {
     // --- Root transactions collection ---
     match /transactions/{txId} {
 
-      // নতুন ট্রান্সফার create করার সময় senderId অবশ্যই auth.uid হতে হবে
-      allow create: if isSignedIn()
-        && request.resource.data.senderId == request.auth.uid;
-
-      // READ rules:
-      // 1) admin → সব transaction পড়তে পারবে (list সহ)
-      // 2) সাধারণ user → শুধু নিজের sender/recipient থাকা transaction পড়তে পারবে
+      // 🔸 EXCHANGE / ADD FUNDS টাইপের ট্রান্স্যাকশনের জন্য userId ফিল্ড ব্যবহার হয়
+      // 🔸 TRANSFER টাইপের জন্য senderId ব্যবহার হয়
+      allow create: if isSignedIn() && (
+        request.resource.data.senderId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+    
+      // READ: আগের মতই, admin সব দেখতে পারবে,
+      // সাধারণ user শুধুই নিজের সাথে সম্পর্কিতগুলো
       allow read: if
         isAdmin() ||
         (
@@ -46,7 +48,7 @@ service cloud.firestore {
           (
             resource.data.senderId == request.auth.uid ||
             resource.data.recipientId == request.auth.uid ||
-            resource.data.userId == request.auth.uid     // পুরনো ফিল্ড থাকলে কভার করার জন্য
+            resource.data.userId == request.auth.uid
           )
         );
       
