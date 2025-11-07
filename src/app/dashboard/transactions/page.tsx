@@ -12,13 +12,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Transaction } from "@/lib/data";
 import { TransactionDetailsDialog } from "@/components/TransactionDetailsDialog";
-import { DollarSign, Landmark } from 'lucide-react';
 
 const getStatusVariant = (status: Transaction['status']) => {
   switch (status) {
@@ -89,19 +87,11 @@ const UserTransactionsPage = () => {
                     <TableCell className="font-medium">{format(parseISO(tx.transactionDate), 'PPp')}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                         <PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5"/>
                          <span>{tx.paymentMethod}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                        <div className="flex items-center gap-2">
-                        {tx.transactionType === 'CARD_TOP_UP' ? (
-                          <DollarSign className="h-5 w-5 text-primary" />
-                        ) : tx.transactionType === 'ADD_FUNDS' ? (
-                          <Landmark className="h-5 w-5 text-primary" />
-                        ) : (
-                          <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5"/>
-                        )}
                          <span>{tx.withdrawalMethod}</span>
                       </div>
                     </TableCell>
@@ -127,3 +117,5 @@ const UserTransactionsPage = () => {
 };
 
 export default UserTransactionsPage;
+
+    

@@ -36,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import PaymentIcon from "@/components/PaymentIcons";
 import { format, parseISO, isToday, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { useFirestore, useUser, useAuth, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import {
@@ -53,7 +52,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { Loader2, Search, DollarSign } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import AuthRedirect from "@/components/auth/AuthRedirect";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -345,23 +344,11 @@ const AdminDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <PaymentIcon
-                            id={tx.paymentMethod.toLowerCase()}
-                            className="h-5 w-5"
-                          />
                           <span>{tx.paymentMethod}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {tx.transactionType === 'CARD_TOP_UP' ? (
-                            <DollarSign className="h-5 w-5 text-primary" />
-                          ) : (
-                            <PaymentIcon
-                              id={tx.withdrawalMethod.toLowerCase()}
-                              className="h-5 w-5"
-                            />
-                          )}
                           <span>{tx.withdrawalMethod}</span>
                         </div>
                       </TableCell>

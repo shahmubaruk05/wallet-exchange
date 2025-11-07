@@ -15,7 +15,6 @@ import type { Transaction, TransactionStatus, User, CardApplication } from '@/li
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -23,7 +22,7 @@ import { doc, serverTimestamp, runTransaction, increment, getDoc, collection } f
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, DollarSign, Landmark } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 
@@ -189,11 +188,8 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
           <dl className="space-y-2">
             <DetailRow label="Status" value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} />
             <DetailRow label="Date" value={format(parseISO(tx.transactionDate), 'PPp')} />
-            <DetailRow label="Sent" value={<div className="flex items-center justify-end gap-2"><PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5" /><span>{tx.amount.toFixed(2)} {tx.currency}</span></div>} />
-            <DetailRow label="Received" value={<div className="flex items-center justify-end gap-2">
-                {tx.transactionType === 'CARD_TOP_UP' ? <DollarSign className="h-5 w-5 text-primary" /> : tx.transactionType === 'ADD_FUNDS' ? <Landmark className="h-5 w-5 text-primary" /> : <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5" />}
-                <span>{tx.receivedAmount.toFixed(2)} {getReceivedCurrency()}</span>
-            </div>} />
+            <DetailRow label="Sent" value={`${tx.paymentMethod} - ${tx.amount.toFixed(2)} ${tx.currency}`} />
+            <DetailRow label="Received" value={`${tx.withdrawalMethod} - ${tx.receivedAmount.toFixed(2)} ${getReceivedCurrency()}`} />
             <DetailRow label="From Account" value={tx.sendingAccountId} />
             <DetailRow label="To Account" value={getToAccountDisplay()} />
             <DetailRow label="Transaction ID" value={tx.transactionId} />
@@ -248,3 +244,5 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
+
+    
