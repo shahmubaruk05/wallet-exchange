@@ -31,7 +31,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/terms-of-service"
                   className="text-base text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary"
                 >
                   Terms of Service
