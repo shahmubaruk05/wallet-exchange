@@ -19,7 +19,7 @@ import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, serverTimestamp, runTransaction, increment, getDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, runTransaction, increment, getDoc, collection } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -91,21 +91,18 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   const handleStatusUpdate = async (newStatus: TransactionStatus) => {
     if (!firestore || !user || tx.status === newStatus) return;
   
-    const rootTxRef = doc(firestore, 'transactions', tx.id);
-    const userTxRef = doc(firestore, `users/${tx.userId}/transactions/${tx.id}`);
-    const targetUserRef = doc(firestore, 'users', tx.userId);
+    // Determine the primary reference based on whether it's an admin page or user dashboard
+    const primaryTxCollection = pathname.startsWith('/admin') ? 'transactions' : `users/${tx.userId}/transactions`;
+    const primaryTxRef = doc(firestore, primaryTxCollection, tx.id);
   
     try {
       await runTransaction(firestore, async (firestoreTransaction) => {
-        const rootTxDoc = await firestoreTransaction.get(rootTxRef);
-        const userTxDoc = await firestoreTransaction.get(userTxRef);
-  
-        if (!rootTxDoc.exists()) {
-          throw new Error("Transaction does not exist in root collection.");
+        const primaryTxDoc = await firestoreTransaction.get(primaryTxRef);
+        if (!primaryTxDoc.exists()) {
+          throw new Error(`Transaction document ${tx.id} not found in ${primaryTxCollection}.`);
         }
-        
-        // This is the original status before we update it.
-        const originalStatus = rootTxDoc.data().status;
+  
+        const originalStatus = primaryTxDoc.data().status;
         const alreadyCompleted = originalStatus === 'Completed';
   
         const updateData = { 
@@ -114,18 +111,31 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
           updatedAt: serverTimestamp() 
         };
   
-        // Always update the root transaction document
-        firestoreTransaction.update(rootTxRef, updateData);
+        // 1. Update the primary document (either root or user subcollection)
+        firestoreTransaction.update(primaryTxRef, updateData);
   
-        // Only update the user sub-collection document if it exists
-        if (userTxDoc.exists()) {
-          firestoreTransaction.update(userTxRef, updateData);
+        // 2. Update the other document if it exists
+        if (pathname.startsWith('/admin')) {
+          // Admin is updating, so the other doc is in the user's subcollection
+          const userTxRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
+          const userTxDoc = await firestoreTransaction.get(userTxRef);
+          if (userTxDoc.exists()) {
+            firestoreTransaction.update(userTxRef, updateData);
+          }
+        } else {
+          // User is updating (hypothetically), so the other doc is in the root collection
+          const rootTxRef = doc(firestore, 'transactions', tx.id);
+          const rootTxDoc = await firestoreTransaction.get(rootTxRef);
+          if (rootTxDoc.exists()) {
+            firestoreTransaction.update(rootTxRef, updateData);
+          }
         }
   
-        // If the transaction is moving to "Completed" for the first time...
+        // 3. Handle balance updates if moving to "Completed" for the first time
         if (newStatus === 'Completed' && !alreadyCompleted) {
           const isDeposit = tx.transactionType === 'ADD_FUNDS' || (tx.transactionType === 'EXCHANGE' && tx.withdrawalMethod === 'Wallet Balance');
           if (isDeposit) {
+            const targetUserRef = doc(firestore, 'users', tx.userId);
             firestoreTransaction.update(targetUserRef, {
               walletBalance: increment(tx.receivedAmount)
             });
@@ -149,6 +159,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
       });
     }
   };
+  
 
   const getReceivedCurrency = () => {
     if (tx.transactionType === 'CARD_TOP_UP' || tx.withdrawalMethod === 'Wallet Balance') {
