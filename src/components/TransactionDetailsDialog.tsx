@@ -19,15 +19,12 @@ import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, serverTimestamp, runTransaction, increment, getDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, runTransaction, increment, getDoc } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, DollarSign, Landmark, Copy, Check, ArrowRight, User as UserIcon } from 'lucide-react';
+import { Info, DollarSign, Landmark } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from './ui/separator';
 
 
 type TransactionWithId = Transaction & { id: string };
@@ -43,10 +40,6 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [adminNote, setAdminNote] = useState(tx.adminNote || '');
-  const [copied, setCopied] = useState(false);
-
-  const [transactionUser, setTransactionUser] = useState<User | null>(null);
-  const [recipientUser, setRecipientUser] = useState<User | null>(null);
 
   const pathname = usePathname();
 
@@ -74,36 +67,8 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   useEffect(() => {
     if (isOpen) {
       setAdminNote(tx.adminNote || '');
-      setCopied(false);
-
-      const fetchUsers = async () => {
-          if (!firestore) return;
-          // Fetch sender/transaction user
-          const userRef = doc(firestore, 'users', tx.userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-              setTransactionUser({ id: userSnap.id, ...userSnap.data() } as User);
-          }
-          // Fetch recipient if it's a transfer
-          if (tx.transactionType === 'WALLET_TRANSFER' && tx.transferDetails?.recipientId) {
-             const recipientRef = doc(firestore, 'users', tx.transferDetails.recipientId);
-             const recipientSnap = await getDoc(recipientRef);
-             if (recipientSnap.exists()) {
-                setRecipientUser({ id: recipientSnap.id, ...recipientSnap.data() } as User);
-             }
-          }
-      };
-
-      fetchUsers();
     }
-  }, [isOpen, tx, firestore]);
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast({ title: 'Copied to clipboard!' });
-    setTimeout(() => setCopied(false), 2000);
-  };
+  }, [isOpen, tx]);
 
 
   const getStatusVariant = (status: Transaction['status']) => {
@@ -177,119 +142,47 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     }
     return tx.currency === 'USD' ? 'BDT' : 'USD';
   }
-  
-  const getInitials = (email?: string | null, name?: string | null) => {
-    if (name) return name.charAt(0).toUpperCase();
-    if (email) return email.charAt(0).toUpperCase();
-    return '?';
-  };
 
-  const amountPrefix = (tx.transactionType === 'ADD_FUNDS' || (tx.transactionType === 'WALLET_TRANSFER' && user?.uid === tx.transferDetails?.recipientId)) ? '+' : '-';
-  const amountColor = amountPrefix === '+' ? 'text-green-600' : 'text-red-600';
-
+  const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
+    <div className="flex justify-between items-start border-b pb-2 mb-2">
+      <dt className="text-muted-foreground text-sm">{label}</dt>
+      <dd className="text-right font-mono text-sm text-foreground break-all">{value}</dd>
+    </div>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader className="text-center">
-           <DialogTitle className="text-4xl font-bold">{amountPrefix}{tx.receivedAmount.toLocaleString('en-US', { style: 'currency', currency: getReceivedCurrency() })}</DialogTitle>
-          <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <Badge className={cn("capitalize", getStatusVariant(tx.status))}>{tx.status}</Badge>
-            <span>•</span>
-            <span>{format(parseISO(tx.transactionDate), 'PPp')}</span>
-          </div>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Transaction Details</DialogTitle>
+          <DialogDescription>
+            ID: {tx.id}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-            
-            <div className="grid grid-cols-2 gap-4 text-sm">
-                {/* From */}
-                <div className="flex flex-col gap-1">
-                    <span className="text-muted-foreground">From</span>
-                     <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback>{getInitials(transactionUser?.email, transactionUser?.username)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                            <span className="font-semibold">{transactionUser?.username || 'User'}</span>
-                            <span className="text-xs text-muted-foreground">{transactionUser?.email}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* To */}
-                <div className="flex flex-col gap-1 text-right">
-                     <span className="text-muted-foreground">To</span>
-                     <div className="flex items-center gap-2 justify-end">
-                        <div className="flex flex-col">
-                            <span className="font-semibold">
-                                {tx.transactionType === 'WALLET_TRANSFER' ? (recipientUser?.username || tx.transferDetails?.recipientEmail) : tx.withdrawalMethod}
-                            </span>
-                            {tx.transactionType === 'WALLET_TRANSFER' && <span className="text-xs text-muted-foreground">{recipientUser?.email}</span>}
-                        </div>
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback>
-                                {tx.transactionType === 'WALLET_TRANSFER' ? getInitials(recipientUser?.email, recipientUser?.username) : <ArrowRight />}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
-                </div>
-            </div>
-
-            <Separator />
-            
-            <div className="space-y-2 text-sm">
-                <h3 className="font-semibold">Amount Breakdown</h3>
-                 <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sent Amount</span>
-                    <span>{tx.amount.toLocaleString('en-US', { style: 'currency', currency: tx.currency })}</span>
-                </div>
-                {tx.transactionFee > 0 && (
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fees</span>
-                        <span className="text-red-500">- {tx.transactionFee.toLocaleString('en-US', { style: 'currency', currency: tx.currency })}</span>
-                    </div>
-                )}
-                 <div className="flex justify-between font-semibold">
-                    <span className="text-muted-foreground">Total Debited</span>
-                    <span>{(tx.amount + tx.transactionFee).toLocaleString('en-US', { style: 'currency', currency: tx.currency })}</span>
-                </div>
-                 <div className="flex justify-between font-bold text-base pt-2 border-t">
-                    <span>Receiver Gets</span>
-                    <span>{tx.receivedAmount.toLocaleString('en-US', { style: 'currency', currency: getReceivedCurrency() })}</span>
-                </div>
-            </div>
-            
-             <Separator />
-
-             <div className="space-y-2 text-sm">
-                 <h3 className="font-semibold">Metadata</h3>
-                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Transaction ID</span>
-                    <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs">{tx.id}</span>
-                         <Button
-                            type="button" variant="ghost" size="icon" className="h-6 w-6"
-                            onClick={() => handleCopy(tx.id)}
-                         >
-                            {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
-                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Payment Method</span>
-                    <span className="font-semibold flex items-center gap-2">
-                        <PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-4 w-4" /> {tx.paymentMethod}
-                    </span>
-                </div>
-                {tx.transactionId && tx.transactionId.length > 5 && (
-                    <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Gateway ID</span>
-                        <span className="font-mono text-xs">{tx.transactionId}</span>
-                    </div>
-                )}
-             </div>
-
+          <dl className="space-y-2">
+            <DetailRow label="Status" value={<Badge className={getStatusVariant(tx.status)}>{tx.status}</Badge>} />
+            <DetailRow label="Date" value={format(parseISO(tx.transactionDate), 'PPp')} />
+            <DetailRow label="Sent" value={<div className="flex items-center justify-end gap-2"><PaymentIcon id={tx.paymentMethod.toLowerCase()} className="h-5 w-5" /><span>{tx.amount.toFixed(2)} {tx.currency}</span></div>} />
+            <DetailRow label="Received" value={<div className="flex items-center justify-end gap-2">
+                {tx.transactionType === 'CARD_TOP_UP' ? <DollarSign className="h-5 w-5 text-primary" /> : tx.transactionType === 'ADD_FUNDS' ? <Landmark className="h-5 w-5 text-primary" /> : <PaymentIcon id={tx.withdrawalMethod.toLowerCase()} className="h-5 w-5" />}
+                <span>{tx.receivedAmount.toFixed(2)} {getReceivedCurrency()}</span>
+            </div>} />
+            <DetailRow label="From Account" value={tx.sendingAccountId} />
+            <DetailRow label="To Account" value={tx.receivingAccountId} />
+            <DetailRow label="Transaction ID" value={tx.transactionId} />
+            <DetailRow label="Fee" value={`${tx.transactionFee.toFixed(2)} ${tx.currency}`} />
+          </dl>
+          {tx.adminNote && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Note from Admin</AlertTitle>
+              <AlertDescription>
+                {tx.adminNote}
+              </AlertDescription>
+            </Alert>
+          )}
           {isAdmin && (
             <div className="pt-4 border-t space-y-2">
                  <Label htmlFor="admin-note">Admin Note (visible to user)</Label>
@@ -305,7 +198,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
         
         {isAdmin ? (
           <DialogFooter className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {(["Pending", "Processing", "Completed", "Cancelled"] as TransactionStatus[]).map(status => (
+            {(["Pending", "Processing", "Paid", "Completed", "Cancelled"] as TransactionStatus[]).map(status => (
               <Button key={status} size="sm" variant="outline" onClick={() => handleStatusUpdate(status)} disabled={tx.status === status}>
                 Mark {status}
               </Button>
