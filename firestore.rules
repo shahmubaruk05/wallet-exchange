@@ -8,39 +8,44 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // তোমার admin ইউজার (UID + ইমেইল) এখানে বসিয়ে দিলাম
+    // 🔹 তোমার admin account
     function isAdmin() {
       return isSignedIn() &&
         (
-          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2" ||   // your UID
-          request.auth.token.email == "shahmubaruk05@gmail.com"   // your email
+          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2" ||   // তোমার UID
+          request.auth.token.email == "shahmubaruk05@gmail.com"   // তোমার ইমেইল
         );
     }
 
-    // --- Users collection (আগে ঠিক করে থাকলে রাখতে পারো) ---
+    // ------------- USERS -------------
     match /users/{userId} {
-      // লগইন করা যে কেউ সকল user profile পড়তে পারবে
+      // সবাই (logged-in user) user ডক পড়তে পারবে
       allow read: if isSignedIn();
 
-      // নিজের প্রোফাইল আপডেট করতে পারবে
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      // 🔸 নিজের প্রোফাইল update করতে পারবে
+      // 🔸 + admin চাইলে যেকোনো user ডক update করতে পারবে (walletBalance সহ)
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId ||   // নিজে
+        isAdmin()                       // admin
+      );
 
       // signup এর সময় create
       allow create: if isSignedIn();
     }
 
-    // --- Root transactions collection ---
+    // ------------- TRANSACTIONS -------------
     match /transactions/{txId} {
 
-      // 🔸 EXCHANGE / ADD FUNDS টাইপের ট্রান্স্যাকশনের জন্য userId ফিল্ড ব্যবহার হয়
-      // 🔸 TRANSFER টাইপের জন্য senderId ব্যবহার হয়
+      // Create: userId বা senderId নিজের uid হতে হবে
       allow create: if isSignedIn() && (
         request.resource.data.senderId == request.auth.uid ||
         request.resource.data.userId == request.auth.uid
       );
-    
-      // READ: আগের মতই, admin সব দেখতে পারবে,
-      // সাধারণ user শুধুই নিজের সাথে সম্পর্কিতগুলো
+
+      // Admin সব transaction update করতে পারবে (status ইত্যাদি)
+      allow update: if isAdmin();
+
+      // Read:
       allow read: if
         isAdmin() ||
         (
@@ -51,9 +56,9 @@ service cloud.firestore {
             resource.data.userId == request.auth.uid
           )
         );
-      
+        
       // Admin can update/delete for status changes
-      allow update, delete: if isAdmin();
+      allow delete: if isAdmin();
     }
     
     // Collection group rule for all 'transactions' for admin list view
@@ -62,15 +67,17 @@ service cloud.firestore {
     }
 
 
-    // যদি users/{uid}/transactions subcollectionও ব্যবহার করো:
+    // ------------- USER SUBCOLLECTION: transactions -------------
     match /users/{userId}/transactions/{txId} {
       allow create: if isSignedIn() && request.auth.uid == userId;
 
-      allow read: if
-        isAdmin() ||
-        (isSignedIn() && request.auth.uid == userId);
+      // user নিজের history পড়তে পারবে, admin সবাইকে
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+
+      // admin status আপডেট করতে পারবে
+      allow update: if isAdmin();
       
-      allow update, delete: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // 💰 Wallet balance data
