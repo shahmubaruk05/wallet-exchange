@@ -194,11 +194,11 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
       <DialogContent className="sm:max-w-lg">
         <DialogHeader className="text-center">
            <DialogTitle className="text-4xl font-bold">{amountPrefix}{tx.receivedAmount.toLocaleString('en-US', { style: 'currency', currency: getReceivedCurrency() })}</DialogTitle>
-          <DialogDescription className="flex items-center justify-center gap-2">
+          <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Badge className={cn("capitalize", getStatusVariant(tx.status))}>{tx.status}</Badge>
             <span>•</span>
             <span>{format(parseISO(tx.transactionDate), 'PPp')}</span>
-          </DialogDescription>
+          </div>
         </DialogHeader>
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
             
@@ -330,5 +330,3 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
-
-    
