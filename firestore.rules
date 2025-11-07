@@ -50,6 +50,11 @@ service cloud.firestore {
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow update: if isAdmin();
     }
+    
+    // ---------- COLLECTION GROUP: transactions (for admin) ----------
+    match /{path=**}/transactions/{txId} {
+      allow read, list: if isAdmin();
+    }
 
     // ---------- Exchange rates ----------
     match /exchange_rates/{rateId} {
@@ -84,3 +89,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

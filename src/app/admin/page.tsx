@@ -352,10 +352,10 @@ const AdminDashboard = () => {
                         {format(parseISO(tx.transactionDate), "PPp")}
                       </TableCell>
                       <TableCell>
-                        <span>{tx.paymentMethod}</span>
+                        {tx.paymentMethod}
                       </TableCell>
                       <TableCell>
-                        <span>{tx.withdrawalMethod}</span>
+                        {tx.withdrawalMethod}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="font-mono">
@@ -418,7 +418,7 @@ const AdminDashboardPage = () => {
     );
   }
 
-  const isAdmin = (userData as any)?.role === "admin";
+  const isAdmin = (userData as any)?.role === "admin" || user?.email === "shahmubaruk05@gmail.com" || user?.uid === "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2";
 
   if (!isAdmin) {
     return <NotAuthorized />;
@@ -439,10 +439,12 @@ const AdminPage = () => {
   }
 
   return (
-    <AuthRedirect to="/admin" condition={(user) => !user}>
+    <AuthRedirect to="/login" condition={(user) => !user}>
       {user ? <AdminDashboardPage /> : <AdminLoginPage />}
     </AuthRedirect>
   );
 };
 
 export default AdminPage;
+
+    
