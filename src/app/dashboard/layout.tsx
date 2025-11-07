@@ -13,7 +13,7 @@ import {
   SidebarInset,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet } from "lucide-react";
+import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -80,11 +80,27 @@ export default function DashboardLayout({
                       </Link>
                   </SidebarMenuButton>
                   </SidebarMenuItem>
+                   <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Transfer Funds">
+                      <Link href="/dashboard/transfer">
+                      <Share2 />
+                      <span>Transfer Funds</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Recent Transactions">
                       <Link href="/dashboard/transactions">
                       <History />
-                      <span>Recent Transactions</span>
+                      <span>All Transactions</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Transfer History">
+                      <Link href="/dashboard/transfer-history">
+                      <History />
+                      <span>Transfer History</span>
                       </Link>
                   </SidebarMenuButton>
                   </SidebarMenuItem>
