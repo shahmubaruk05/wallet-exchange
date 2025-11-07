@@ -147,7 +147,8 @@
           "enum": [
             "EXCHANGE",
             "CARD_TOP_UP",
-            "ADD_FUNDS"
+            "ADD_FUNDS",
+            "WALLET_TRANSFER"
           ]
         },
         "topUpDetails": {
@@ -162,6 +163,24 @@
             },
             "topUpAmountUSD": {
               "type": "number"
+            }
+          }
+        },
+         "transferDetails": {
+          "type": "object",
+          "description": "Details specific to a wallet-to-wallet transfer.",
+          "properties": {
+            "senderId": {
+              "type": "string"
+            },
+             "senderEmail": {
+              "type": "string"
+            },
+            "recipientId": {
+              "type": "string"
+            },
+            "recipientEmail": {
+               "type": "string"
             }
           }
         }
