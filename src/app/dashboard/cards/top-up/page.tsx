@@ -34,9 +34,9 @@ type LastEdited = "send" | "receive";
 
 export default function CardTopUpPage() {
   const [step, setStep] = useState<Step>("form");
-  const [sendAmount, setSendAmount] = useState<string>("50");
-  const [receiveAmount, setReceiveAmount] = useState<string>("");
-  const [lastEdited, setLastEdited] = useState<LastEdited>("send");
+  const [sendAmount, setSendAmount] = useState<string>("");
+  const [receiveAmount, setReceiveAmount] = useState<string>("50");
+  const [lastEdited, setLastEdited] = useState<LastEdited>("receive");
   const [sendMethodId, setSendMethodId] = useState<string>("wallet");
   const [isCalculating, setIsCalculating] = useState(false);
   const [rateText, setRateText] = useState<string>("");
@@ -107,8 +107,13 @@ export default function CardTopUpPage() {
   useEffect(() => {
      if (sendMethod.id === 'wallet') {
       setTransactionFee(0);
-      const amount = parseFloat(sendAmount);
-      setReceiveAmount(isNaN(amount) ? "" : amount.toFixed(2));
+      if (lastEdited === 'send') {
+        const amount = parseFloat(sendAmount);
+        setReceiveAmount(isNaN(amount) ? "" : amount.toFixed(2));
+      } else {
+        const amount = parseFloat(receiveAmount);
+        setSendAmount(isNaN(amount) ? "" : amount.toFixed(2));
+      }
       setRateText("1 USD = 1 USD (Wallet)");
       setIsCalculating(false);
       return;
@@ -190,6 +195,8 @@ export default function CardTopUpPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const sendAmountNum = parseFloat(sendAmount);
+    const receiveAmountNum = parseFloat(receiveAmount);
+
 
     if (!user) {
         toast({
@@ -200,13 +207,22 @@ export default function CardTopUpPage() {
         return;
     }
 
-    if (isNaN(sendAmountNum) || sendAmountNum <= 0) {
+    if (isNaN(sendAmountNum) || sendAmountNum <= 0 || isNaN(receiveAmountNum) || receiveAmountNum <= 0) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid amount to send.",
         variant: "destructive",
       });
       return;
+    }
+
+    if (receiveAmountNum < 50) {
+        toast({
+            title: "Minimum Top Up is $50",
+            description: "After fees, the amount you receive on your card must be at least $50.",
+            variant: "destructive",
+        });
+        return;
     }
     
     if (sendMethod.id === 'wallet') {
@@ -238,16 +254,6 @@ export default function CardTopUpPage() {
         });
         return;
       }
-    } else if (sendMethod.id !== 'wallet') {
-        const receiveAmountNum = parseFloat(receiveAmount);
-        if (receiveAmountNum < 50) {
-            toast({
-                title: "Minimum Top Up is $50",
-                description: "After fees, the amount you receive on your card must be at least $50.",
-                variant: "destructive",
-            });
-            return;
-        }
     }
     setStep("confirm");
   };
@@ -302,6 +308,7 @@ export default function CardTopUpPage() {
       // Create log in root collection as well
       const rootTxRef = doc(firestore, 'transactions', newTxId);
       transaction.set(rootTxRef, transactionData);
+
     });
 
     toast({
@@ -370,9 +377,9 @@ export default function CardTopUpPage() {
   
   const startNewTransaction = () => {
     setStep('form');
-    setSendAmount('50');
-    setReceiveAmount('');
-    setLastEdited('send');
+    setSendAmount('');
+    setReceiveAmount('50');
+    setLastEdited('receive');
     setSendMethodId('wallet');
     setSendingAccountId('');
     setTransactionId('');
@@ -392,7 +399,7 @@ export default function CardTopUpPage() {
           Card Top Up
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Add funds to your virtual card.
+          Add funds to your virtual card. Minimum top up is $50.
         </p>
       </div>
         <Card className="w-full shadow-lg">
