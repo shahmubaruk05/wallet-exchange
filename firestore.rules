@@ -3,47 +3,72 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 Admin helper function
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // তোমার admin ইউজার (UID + ইমেইল) এখানে বসিয়ে দিলাম
     function isAdmin() {
-      return request.auth != null &&
+      return isSignedIn() &&
         (
-          request.auth.token.email == "shahmubaruk05@gmail.com" || // Your admin email
-          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"      // Your admin UID
+          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2" ||   // your UID
+          request.auth.token.email == "shahmubaruk05@gmail.com"   // your email
         );
     }
 
-    // 🧑‍💻 User profiles
+    // --- Users collection (আগে ঠিক করে থাকলে রাখতে পারো) ---
     match /users/{userId} {
-      // Any logged-in user can read their own user doc
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // লগইন করা যে কেউ সকল user profile পড়তে পারবে
+      allow read: if isSignedIn();
 
-      // Any logged-in user can update their own user doc
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // নিজের প্রোফাইল আপডেট করতে পারবে
+      allow update: if isSignedIn() && request.auth.uid == userId;
 
-      // Allow creating a new user doc (during signup)
-      allow create: if request.auth != null;
+      // signup এর সময় create
+      allow create: if isSignedIn();
     }
 
-    // 🔐 Transactions for each user (subcollection)
-    match /users/{userId}/transactions/{txId} {
-      // User can read and create their own transactions
-      allow read, create: if request.auth != null && request.auth.uid == userId;
+    // --- Root transactions collection ---
+    match /transactions/{txId} {
+
+      // নতুন ট্রান্সফার create করার সময় senderId অবশ্যই auth.uid হতে হবে
+      allow create: if isSignedIn()
+        && request.resource.data.senderId == request.auth.uid;
+
+      // READ rules:
+      // 1) admin → সব transaction পড়তে পারবে (list সহ)
+      // 2) সাধারণ user → শুধু নিজের sender/recipient থাকা transaction পড়তে পারবে
+      allow read: if
+        isAdmin() ||
+        (
+          isSignedIn() &&
+          (
+            resource.data.senderId == request.auth.uid ||
+            resource.data.recipientId == request.auth.uid ||
+            resource.data.userId == request.auth.uid     // পুরনো ফিল্ড থাকলে কভার করার জন্য
+          )
+        );
+      
       // Admin can update/delete for status changes
       allow update, delete: if isAdmin();
     }
     
-    // 🛡️ Collection group rule for all 'transactions'
-    match /{path=**}/transactions/{txId} {
-        // Admins can list all transactions across all users
+    // Collection group rule for all 'transactions' for admin list view
+    match /{path=**}/transactions/{transactionId} {
         allow list: if isAdmin();
     }
 
-    // 🌍 Root-level transactions log (for admin view)
-    match /transactions/{txId} {
-      // Any logged-in user can create a new transaction
-      allow create: if request.auth != null;
-      // Admins can manage everything
-      allow read, update, delete: if isAdmin();
+
+    // যদি users/{uid}/transactions subcollectionও ব্যবহার করো:
+    match /users/{userId}/transactions/{txId} {
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      allow read: if
+        isAdmin() ||
+        (isSignedIn() && request.auth.uid == userId);
+      
+      allow update, delete: if isAdmin();
     }
 
     // 💰 Wallet balance data
