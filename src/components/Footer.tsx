@@ -45,16 +45,16 @@ const Footer = () => {
             </h3>
             <ul className="mt-4 space-y-2">
               <li>
-                <a
-                  href="mailto:info@walletexchangebd.com"
+                <Link
+                  href="/contact"
                   className="text-base text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary"
                 >
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/#faq"
                   className="text-base text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary"
                 >
                   FAQ
