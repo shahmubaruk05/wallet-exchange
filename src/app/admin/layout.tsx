@@ -22,7 +22,7 @@ export default function AdminLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
+          <div className="flex items-center gap-2 p-4">
              <Logo className="h-8 w-auto text-primary" />
           </div>
         </SidebarHeader>
