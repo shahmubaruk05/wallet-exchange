@@ -16,68 +16,46 @@ service cloud.firestore {
           request.auth.token.email == "shahmubaruk05@gmail.com"   // তোমার ইমেইল
         );
     }
-    
-    // Rule for collection group query on 'transactions'
-    match /{path=**}/transactions/{txId} {
-      allow list: if isAdmin();
-    }
-
 
     // ---------- USERS ----------
     match /users/{userId} {
-      // লগইন করা যে কেউ সব user ডক পড়তে পারবে (recipient search না থাকলেও harmless)
       allow read: if isSignedIn();
 
-      // নিজে নিজের প্রোফাইল update করতে পারবে
-      // + admin সব user update করতে পারবে (walletBalance সহ)
+      // নিজে update করতে পারবে, admin যেকোনো user update করতে পারবে
       allow update: if isSignedIn() && (
-        request.auth.uid == userId ||    // নিজে
-        isAdmin()                        // admin
+        request.auth.uid == userId || isAdmin()
       );
 
-      // signup এর সময় create
       allow create: if isSignedIn();
     }
 
     // ---------- ROOT TRANSACTIONS ----------
-    // এখানে EXCHANGE / ADD FUNDS transaction লগ থাকে
     match /transactions/{txId} {
-
-      // ইউজার নিজের transaction create করবে (Exchange রিকোয়েস্ট)
-      // ডকে অবশ্যই userId == auth.uid থাকতে হবে
+      // শুধু নিজের userId দিয়ে transaction create
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid;
 
-      // ইউজার নিজের transaction গুলো দেখতে পারবে, admin সব দেখতে পারবে
-      allow read: if
-        isAdmin() ||
-        (
-          isSignedIn() &&
-          resource.data.userId == request.auth.uid
-        );
+      // নিজের transaction পড়া, admin সব পড়বে
+      allow read: if isAdmin() || (
+        isSignedIn() && resource.data.userId == request.auth.uid
+      );
 
-      // status, adminNote ইত্যাদি update: শুধু admin
+      // status, adminNote etc update শুধু admin
       allow update: if isAdmin();
     }
 
     // ---------- USER SUBCOLLECTION: transactions ----------
-    // কিছু কোড user-wise history রাখলে এর প্রয়োজন হবে
     match /users/{userId}/transactions/{txId} {
-      // user নিজের ডক create করে (mirror log)
       allow create: if isSignedIn() && request.auth.uid == userId;
-
-      // user নিজের history পড়তে পারবে, admin সব
-      allow read: if isAdmin() || (
-        isSignedIn() && request.auth.uid == userId
-      );
-
-      // status sync / edit: শুধু admin
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow update: if isAdmin();
     }
 
     // ---------- Exchange rates ----------
     match /exchange_rates/{rateId} {
+      // সবাই (logged-in user) rate দেখতে পারবে
       allow read: if isSignedIn();
+      // কিন্তু লিখতে (add/update/delete) পারবে শুধু admin
       allow write: if isAdmin();
     }
 
@@ -93,8 +71,14 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 🔥 FINAL CATCH-ALL: admin সব document read/write করতে পারবে
-    // এটা সবশেষে থাকবে, যেন বাকি সব specific rule আগেই apply হয়।
+    // ---------- Card top ups ----------
+    match /card_top_ups/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // 🔥 Catch-all: admin সবাইকেই সব ডক পড়া/লেখা করতে পারবে
     match /{document=**} {
       allow read, write: if isAdmin();
     }
