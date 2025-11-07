@@ -58,30 +58,35 @@ const AdminTopUpPage = () => {
       if (!firestore) return;
       setIsLoading(true);
       
-      try {
-        const topUpsQuery = query(
-          collection(firestore, "transactions"),
-          where("transactionType", "==", "CARD_TOP_UP"),
-          orderBy("transactionDate", "desc")
-        );
-        const querySnapshot = await getDocs(topUpsQuery);
+      const topUpsQuery = query(
+        collection(firestore, "transactions"),
+        where("transactionType", "==", "CARD_TOP_UP"),
+        orderBy("transactionDate", "desc")
+      );
+      
+      getDocs(topUpsQuery).then(querySnapshot => {
         const fetchedTopUps = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
         setTopUps(fetchedTopUps);
-        
-        const usersSnapshot = await getDocs(collection(firestore, "users"));
-        const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setUsers(usersList);
-
-      } catch (error: any) {
+      }).catch(error => {
         const permissionError = new FirestorePermissionError({
           path: `transactions`,
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
-        console.error("Error fetching card top-ups:", error);
-      } finally {
-        setIsLoading(false);
-      }
+      });
+      
+      getDocs(collection(firestore, "users")).then(usersSnapshot => {
+          const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+          setUsers(usersList);
+      }).catch(error => {
+           const permissionError = new FirestorePermissionError({
+            path: `users`,
+            operation: 'list',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+      });
+
+      setIsLoading(false);
     };
 
     fetchTopUps();

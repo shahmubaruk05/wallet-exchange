@@ -66,21 +66,35 @@ const AdminCardManagementPage = () => {
           collection(firestore, "card_applications"),
           orderBy("appliedAt", "desc")
         );
-        const appsSnapshot = await getDocs(appsQuery);
-        const appsList = appsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CardApplication));
-        setApplications(appsList);
+        getDocs(appsQuery).then(appsSnapshot => {
+            const appsList = appsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CardApplication));
+            setApplications(appsList);
+        }).catch(error => {
+            const permissionError = new FirestorePermissionError({
+              path: `card_applications`,
+              operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
-        const usersSnapshot = await getDocs(collection(firestore, "users"));
-        const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setUsers(usersList);
+        getDocs(collection(firestore, "users")).then(usersSnapshot => {
+            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+            setUsers(usersList);
+        }).catch(error => {
+            const permissionError = new FirestorePermissionError({
+              path: `users`,
+              operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
       } catch (error: any) {
+        // This is a fallback, but specific errors are handled in .catch blocks
         const permissionError = new FirestorePermissionError({
-          path: `card_applications`,
+          path: `card_applications or users`,
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
-        console.error("Error fetching card applications or users:", error);
       } finally {
         setIsLoading(false);
       }
@@ -159,5 +173,3 @@ const AdminCardManagementPage = () => {
 };
 
 export default AdminCardManagementPage;
-
-    

@@ -172,20 +172,28 @@ const AdminDashboard = () => {
     const fetchAllData = async () => {
       if (!firestore) return;
       setIsLoading(true);
-      try {
+      
+      const fetchTransactions = async () => {
         // Fetch from root `transactions` collection
         const rootTxQuery = query(collection(firestore, "transactions"));
-        const rootTxSnapshot = await getDocs(rootTxQuery);
-        const rootTransactions = rootTxSnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
-        );
+        const rootTxPromise = getDocs(rootTxQuery).catch(error => {
+            const permissionError = new FirestorePermissionError({ path: `transactions`, operation: 'list' });
+            errorEmitter.emit('permission-error', permissionError);
+            return null;
+        });
 
         // Fetch from `transactions` collection group (users/{uid}/transactions)
         const groupTxQuery = query(collectionGroup(firestore, "transactions"));
-        const groupTxSnapshot = await getDocs(groupTxQuery);
-        const groupTransactions = groupTxSnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
-        );
+        const groupTxPromise = getDocs(groupTxQuery).catch(error => {
+            const permissionError = new FirestorePermissionError({ path: `transactions (collection group)`, operation: 'list' });
+            errorEmitter.emit('permission-error', permissionError);
+            return null;
+        });
+
+        const [rootTxSnapshot, groupTxSnapshot] = await Promise.all([rootTxPromise, groupTxPromise]);
+
+        const rootTransactions = rootTxSnapshot ? rootTxSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)) : [];
+        const groupTransactions = groupTxSnapshot ? groupTxSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)) : [];
         
         // Combine and de-duplicate
         const combined = [...rootTransactions, ...groupTransactions];
@@ -195,23 +203,21 @@ const AdminDashboard = () => {
         uniqueTransactions.sort((a, b) => 
             parseISO(b.transactionDate).getTime() - parseISO(a.transactionDate).getTime()
         );
-
         setAllTransactions(uniqueTransactions);
+      };
 
-        const usersSnapshot = await getDocs(collection(firestore, "users"));
-        const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setUsers(usersList);
-
-      } catch (error: any) {
-        const permissionError = new FirestorePermissionError({
-          path: `transactions`,
-          operation: 'list',
+      const fetchUsers = async () => {
+        getDocs(collection(firestore, "users")).then(usersSnapshot => {
+            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+            setUsers(usersList);
+        }).catch(error => {
+            const permissionError = new FirestorePermissionError({ path: `users`, operation: 'list' });
+            errorEmitter.emit('permission-error', permissionError);
         });
-        errorEmitter.emit('permission-error', permissionError);
-        console.error("Error fetching all transactions or users:", error);
-      } finally {
-        setIsLoading(false);
-      }
+      };
+
+      await Promise.all([fetchTransactions(), fetchUsers()]);
+      setIsLoading(false);
     };
     fetchAllData();
   }, [firestore]);
@@ -441,5 +447,3 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
-
-    
