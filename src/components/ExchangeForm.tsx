@@ -30,7 +30,7 @@ import {
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking, runTransactionNonBlocking, useDoc } from "@/firebase";
-import { collection, doc, increment, addDoc } from "firebase/firestore";
+import { collection, doc, increment } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from 'next/link';
 
@@ -364,7 +364,7 @@ export default function ExchangeForm() {
 
     // Create in root collection for admin view
     const rootTransactionsColRef = collection(firestore, 'transactions');
-    addDoc(rootTransactionsColRef, transactionData);
+    addDocumentNonBlocking(rootTransactionsColRef, transactionData);
 
     setStep("status");
   };
