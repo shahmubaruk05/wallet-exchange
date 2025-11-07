@@ -64,7 +64,9 @@ export default function TransferForm() {
       return;
     }
     
-    if (values.recipientIdentifier === user.email || values.recipientIdentifier === user.uid) {
+    const recipientIdentifier = values.recipientIdentifier.trim();
+
+    if (recipientIdentifier === user.email || recipientIdentifier === user.uid) {
       toast({ title: "Invalid Recipient", description: "You cannot transfer funds to yourself.", variant: "destructive" });
       return;
     }
@@ -81,7 +83,7 @@ export default function TransferForm() {
       let recipientId: string | null = null;
 
       // 1. Try to get user by ID directly
-      const docRef = doc(firestore, "users", values.recipientIdentifier);
+      const docRef = doc(firestore, "users", recipientIdentifier);
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -89,7 +91,7 @@ export default function TransferForm() {
         recipientId = docSnap.id;
       } else {
         // 2. If not found by ID, try to get user by email
-        const q = query(collection(firestore, "users"), where("email", "==", values.recipientIdentifier));
+        const q = query(collection(firestore, "users"), where("email", "==", recipientIdentifier));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
           const doc = querySnapshot.docs[0];
@@ -122,15 +124,22 @@ export default function TransferForm() {
             throw new Error("Insufficient balance.");
         }
 
+        const recipientDocForTransaction = await transaction.get(recipientRef);
+        if (!recipientDocForTransaction.exists()) {
+            throw new Error("Recipient document does not exist.");
+        }
+        const recipientDataForTransaction = recipientDocForTransaction.data() as User;
+
+
         // Decrement sender's balance
         transaction.update(senderRef, { walletBalance: (senderDoc.data().walletBalance ?? 0) - values.amount });
 
         // Increment recipient's balance
-        const recipientCurrentBalance = (recipientData.walletBalance ?? 0);
+        const recipientCurrentBalance = (recipientDataForTransaction.walletBalance ?? 0);
         transaction.update(recipientRef, { walletBalance: recipientCurrentBalance + values.amount });
 
         const now = new Date().toISOString();
-        const recipientEmail = recipientData.email;
+        const recipientEmail = recipientDataForTransaction.email;
 
 
         // Create sender's transaction log

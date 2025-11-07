@@ -17,8 +17,9 @@ service cloud.firestore {
       // (ইমেইল দিয়ে recipient search করার জন্য)
       allow read: if request.auth != null;
 
-      // নিজের ডক আপডেট করতে পারবে
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // নিজের ডক বাদে অন্য user এর ডকও update করা যাবে
+      // (fund transfer এর জন্য)
+      allow update: if request.auth != null;
 
       // নতুন user ডক create (signup এর সময়)
       allow create: if request.auth != null;
@@ -43,8 +44,8 @@ service cloud.firestore {
       allow read: if isAdmin() ||
         (request.auth != null && (
           resource.data.userId == request.auth.uid ||
-          resource.data.fromUserId == request.auth.uid ||
-          resource.data.senderId == request.auth.uid
+          resource.data.transferDetails.senderId == request.auth.uid ||
+          resource.data.transferDetails.recipientId == request.auth.uid
         ));
 
       // update/delete: শুধু admin
@@ -77,9 +78,5 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // ডিফল্ট: বাকি সব ডকুমেন্ট শুধু admin
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
   }
 }
