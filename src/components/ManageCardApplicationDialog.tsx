@@ -54,6 +54,8 @@ export function ManageCardApplicationDialog({
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const defaultInstruction = "আমাদের পার্টনার mercury থেকে ইতিমধ্যে আপনাকে ইমেলে এ কার্ড টি একটিভ করার আমন্ত্রন জানিয়েছে। আপনি mercury তে কারড একাউন্ট টি সম্পন্ন করে কার্ড টি একটিভ করুন।";
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,7 +63,7 @@ export function ManageCardApplicationDialog({
       expiryDate: application.expiryDate || "",
       cvc: application.cvc || "",
       brand: application.brand || "Mastercard",
-      adminInstruction: application.adminInstruction || "",
+      adminInstruction: application.adminInstruction || defaultInstruction,
     },
   });
 
