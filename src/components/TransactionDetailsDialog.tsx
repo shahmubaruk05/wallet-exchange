@@ -172,7 +172,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
             <DetailRow label="From Account" value={tx.sendingAccountId} />
             <DetailRow label="To Account" value={tx.receivingAccountId} />
             <DetailRow label="Transaction ID" value={tx.transactionId} />
-            <DetailRow label="Fee" value={`${tx.transactionFee.toFixed(2)} ${tx.currency}`} />
+            <DetailRow label="Fee" value={`${(tx.transactionFee ?? 0).toFixed(2)} ${tx.currency}`} />
           </dl>
           {tx.adminNote && (
             <Alert>
