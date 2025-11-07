@@ -11,12 +11,17 @@ service cloud.firestore {
         );
     }
 
-    // 🔐 User profile
+    // 🧑‍💻 User profiles
     match /users/{userId} {
-      // Allow any authenticated user to create/update user documents.
-      // This is necessary for wallet transfers between users.
-      // The logic in the TransferForm.tsx's runTransaction ensures this is done safely.
-      allow read, write: if request.auth != null;
+      // 🔓 যে কেউ logged-in হলে সব user ডক পড়তে পারবে
+      // (ইমেইল দিয়ে recipient search করার জন্য)
+      allow read: if request.auth != null;
+
+      // নিজের ডক আপডেট করতে পারবে
+      allow update: if request.auth != null && request.auth.uid == userId;
+
+      // নতুন user ডক create (signup এর সময়)
+      allow create: if request.auth != null;
     }
 
     // 🔐 প্রতি user এর transactions (subcollection)
