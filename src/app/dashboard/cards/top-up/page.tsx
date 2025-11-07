@@ -24,7 +24,7 @@ import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarS
 import { paymentMethods, type ExchangeLimit, type User } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, runTransactionNonBlocking, useDoc, addDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useUser, useCollection, useMemoFirebase, runTransactionNonBlocking, useDoc, setDocumentNonBlocking } from "@/firebase";
 import { collection, doc, serverTimestamp, increment } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from "next/link";
@@ -274,9 +274,13 @@ export default function CardTopUpPage() {
       // Deduct from wallet
       transaction.update(userDocRef, { walletBalance: increment(-amountToDeduct) });
 
-      // Create a pending transaction log
-      const newTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
-      transaction.set(newTxRef, {
+      // Generate a single ID for both documents
+      const newTxId = doc(collection(firestore, 'transactions')).id;
+
+      // Create a pending transaction log in sub-collection
+      const newUserTxRef = doc(firestore, `users/${user.uid}/transactions`, newTxId);
+      const transactionData = {
+        id: newTxId,
         userId: user.uid,
         paymentMethod: sendMethod.name,
         withdrawalMethod: "Virtual Card Top Up",
@@ -292,7 +296,12 @@ export default function CardTopUpPage() {
         adminNote: "Awaiting admin approval.",
         transactionType: 'CARD_TOP_UP' as const,
         exchangeRateId: "N/A",
-      });
+      };
+      transaction.set(newUserTxRef, transactionData);
+
+      // Create log in root collection as well
+      const rootTxRef = doc(firestore, 'transactions', newTxId);
+      transaction.set(rootTxRef, transactionData);
     });
 
     toast({
@@ -319,8 +328,12 @@ export default function CardTopUpPage() {
       });
       return;
     }
+    
+    // Generate a single ID for both documents
+    const newTxId = doc(collection(firestore, 'transactions')).id;
 
     const transactionData = {
+        id: newTxId, // Add the ID to the data payload
         userId: user.uid,
         paymentMethod: sendMethod.name,
         withdrawalMethod: "Virtual Card Top Up",
@@ -343,8 +356,14 @@ export default function CardTopUpPage() {
         exchangeRateId: "dummy-rate-id",
     };
     
-    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
-    addDocumentNonBlocking(transactionsColRef, transactionData);
+    // Create in user's subcollection with the generated ID
+    const userTxRef = doc(firestore, `users/${user.uid}/transactions`, newTxId);
+    setDocumentNonBlocking(userTxRef, transactionData, { merge: false });
+
+    // Create in root collection with the same ID
+    const rootTxRef = doc(firestore, 'transactions', newTxId);
+    setDocumentNonBlocking(rootTxRef, transactionData, { merge: false });
+
 
     setStep("status");
   };
@@ -686,3 +705,5 @@ export default function CardTopUpPage() {
       return renderForm();
   }
 }
+
+    

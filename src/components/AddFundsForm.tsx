@@ -24,8 +24,8 @@ import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarS
 import { paymentMethods, type ExchangeLimit } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from "next/link";
 
@@ -225,7 +225,11 @@ export default function AddFundsForm() {
       return;
     }
 
+    // Generate a single ID for both documents
+    const newTxId = doc(collection(firestore, 'transactions')).id;
+
     const transactionData = {
+        id: newTxId, // Add the ID to the data payload
         userId: user.uid,
         paymentMethod: sendMethod.name,
         withdrawalMethod: "Wallet Balance",
@@ -243,13 +247,13 @@ export default function AddFundsForm() {
         exchangeRateId: "dummy-rate-id",
     };
     
-    // Create in user's subcollection
-    const userTransactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
-    addDocumentNonBlocking(userTransactionsColRef, transactionData);
+    // Create in user's subcollection with the generated ID
+    const userTxRef = doc(firestore, `users/${user.uid}/transactions`, newTxId);
+    setDocumentNonBlocking(userTxRef, transactionData, { merge: false });
     
-    // Create in root collection for admin view
-    const rootTransactionsColRef = collection(firestore, 'transactions');
-    addDocumentNonBlocking(rootTransactionsColRef, transactionData);
+    // Create in root collection with the same ID
+    const rootTxRef = doc(firestore, 'transactions', newTxId);
+    setDocumentNonBlocking(rootTxRef, transactionData, { merge: false });
 
     setStep("status");
   };
@@ -520,3 +524,5 @@ export default function AddFundsForm() {
       return renderForm();
   }
 }
+
+    

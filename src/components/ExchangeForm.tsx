@@ -29,7 +29,7 @@ import {
 } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking, runTransactionNonBlocking, useDoc } from "@/firebase";
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, runTransactionNonBlocking, useDoc } from "@/firebase";
 import { collection, doc, increment } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from 'next/link';
@@ -146,7 +146,7 @@ export default function ExchangeForm() {
 
           let result = 0;
           if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
-            result = amountAfterFee * exchangeRates.USD_to_BDT;
+            result = amountAfterFee * exchangeRates.USD_TO_BDT;
           } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
             result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
           } else { // USD to USD
@@ -293,9 +293,13 @@ export default function ExchangeForm() {
       // Deduct from wallet
       transaction.update(userDocRef, { walletBalance: increment(-amountToDeduct) });
 
-      // Create a pending transaction log
-      const newTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
-      transaction.set(newTxRef, {
+      // Generate a single ID for both documents
+      const newTxId = doc(collection(firestore, 'transactions')).id;
+
+      // Create a pending transaction log in sub-collection
+      const newUserTxRef = doc(firestore, `users/${user.uid}/transactions`, newTxId);
+      const transactionData = {
+        id: newTxId,
         userId: user.uid,
         paymentMethod: sendMethod.name,
         withdrawalMethod: receiveMethod.name,
@@ -311,7 +315,12 @@ export default function ExchangeForm() {
         adminNote: "Awaiting admin approval.",
         transactionType: 'EXCHANGE' as const,
         exchangeRateId: "N/A",
-      });
+      };
+      transaction.set(newUserTxRef, transactionData);
+
+      // Create log in root collection as well
+      const rootTxRef = doc(firestore, 'transactions', newTxId);
+      transaction.set(rootTxRef, transactionData);
     });
 
     toast({
@@ -340,8 +349,11 @@ export default function ExchangeForm() {
       return;
     }
 
+    // Generate a single ID for both documents
+    const newTxId = doc(collection(firestore, 'transactions')).id;
 
     const transactionData = {
+        id: newTxId, // Add the ID to the data payload
         userId: user.uid,
         paymentMethod: sendMethod.name,
         withdrawalMethod: receiveMethod.name,
@@ -358,13 +370,13 @@ export default function ExchangeForm() {
         transactionType: 'EXCHANGE' as const,
     };
     
-    // Create in user's subcollection
-    const userTransactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
-    addDocumentNonBlocking(userTransactionsColRef, transactionData);
+    // Create in user's subcollection with the generated ID
+    const userTxRef = doc(firestore, `users/${user.uid}/transactions`, newTxId);
+    setDocumentNonBlocking(userTxRef, transactionData, { merge: false });
 
-    // Create in root collection for admin view
-    const rootTransactionsColRef = collection(firestore, 'transactions');
-    addDocumentNonBlocking(rootTransactionsColRef, transactionData);
+    // Create in root collection with the same ID
+    const rootTxRef = doc(firestore, 'transactions', newTxId);
+    setDocumentNonBlocking(rootTxRef, transactionData, { merge: false });
 
     setStep("status");
   };
@@ -710,3 +722,5 @@ export default function ExchangeForm() {
       return renderForm();
   }
 }
+
+    
