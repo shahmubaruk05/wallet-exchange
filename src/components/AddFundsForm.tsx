@@ -24,8 +24,8 @@ import { ArrowRight, ArrowLeft, CheckCircle, Loader2, Info, Copy, Check, DollarS
 import { paymentMethods, type ExchangeLimit } from "@/lib/data";
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, addDoc } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from "next/link";
 
@@ -243,8 +243,13 @@ export default function AddFundsForm() {
         exchangeRateId: "dummy-rate-id",
     };
     
-    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
-    addDocumentNonBlocking(transactionsColRef, transactionData);
+    // Create in user's subcollection
+    const userTransactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+    addDoc(userTransactionsColRef, transactionData);
+    
+    // Create in root collection for admin view
+    const rootTransactionsColRef = collection(firestore, 'transactions');
+    addDoc(rootTransactionsColRef, transactionData);
 
     setStep("status");
   };

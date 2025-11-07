@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collectionGroup, query, where, orderBy, getDocs, collection } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import type { Transaction, TransactionStatus, User } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import { Loader2 } from "lucide-react";
@@ -60,7 +60,7 @@ const AdminTopUpPage = () => {
       
       try {
         const topUpsQuery = query(
-          collectionGroup(firestore, "transactions"),
+          collection(firestore, "transactions"),
           where("transactionType", "==", "CARD_TOP_UP"),
           orderBy("transactionDate", "desc")
         );
@@ -74,7 +74,7 @@ const AdminTopUpPage = () => {
 
       } catch (error: any) {
         const permissionError = new FirestorePermissionError({
-          path: `transactions (collectionGroup)`,
+          path: `transactions`,
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
@@ -161,5 +161,3 @@ const AdminTopUpPage = () => {
 };
 
 export default AdminTopUpPage;
-
-    

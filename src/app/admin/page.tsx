@@ -175,7 +175,7 @@ const AdminDashboard = () => {
       setIsLoading(true);
       try {
         const transactionsQuery = query(
-          collectionGroup(firestore, "transactions"),
+          collection(firestore, "transactions"),
           orderBy("transactionDate", "desc")
         );
         const transactionsSnapshot = await getDocs(transactionsQuery);
@@ -190,7 +190,7 @@ const AdminDashboard = () => {
 
       } catch (error: any) {
         const permissionError = new FirestorePermissionError({
-          path: `transactions (collectionGroup)`,
+          path: `transactions`,
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);

@@ -19,7 +19,7 @@ import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useFirestore, updateDocumentNonBlocking, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, serverTimestamp, runTransaction, increment, getDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, runTransaction, increment, getDoc, collection, addDoc } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -111,53 +111,56 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
   };
 
   const handleStatusUpdate = async (newStatus: TransactionStatus) => {
-    if (!firestore || tx.status === newStatus) return;
-
-    const transactionRef = doc(firestore, `users/${tx.userId}/transactions/${tx.id}`);
-    const targetUserRef = doc(firestore, `users/${tx.userId}`);
-
+    if (!firestore || !user || tx.status === newStatus) return;
+  
+    const rootTxRef = doc(firestore, 'transactions', tx.id);
+    const userTxRef = doc(firestore, `users/${tx.userId}/transactions/${tx.id}`);
+    const targetUserRef = doc(firestore, 'users', tx.userId);
+  
     try {
-        await runTransaction(firestore, async (firestoreTransaction) => {
-            const currentTxDoc = await firestoreTransaction.get(transactionRef);
-            if (currentTxDoc.exists() && currentTxDoc.data().status === 'Completed' && newStatus === 'Completed') {
-                 firestoreTransaction.update(transactionRef, {
-                    adminNote: adminNote,
-                    updatedAt: serverTimestamp(),
-                });
-                return;
-            }
-
-            firestoreTransaction.update(transactionRef, {
-                status: newStatus,
-                adminNote: adminNote,
-                updatedAt: serverTimestamp(),
+      await runTransaction(firestore, async (firestoreTransaction) => {
+        // First, check if the transaction is already completed to avoid double-crediting
+        const userTxDoc = await firestoreTransaction.get(userTxRef);
+        
+        // This is a simple note update
+        if (userTxDoc.exists() && userTxDoc.data().status === 'Completed' && newStatus === 'Completed') {
+          const updateData = { adminNote, updatedAt: serverTimestamp() };
+          firestoreTransaction.update(userTxRef, updateData);
+          firestoreTransaction.update(rootTxRef, updateData);
+          return;
+        }
+  
+        const updateData = { status: newStatus, adminNote, updatedAt: serverTimestamp() };
+        firestoreTransaction.update(userTxRef, updateData);
+        firestoreTransaction.update(rootTx2Ref, updateData);
+  
+        // If the transaction type is ADD_FUNDS and is being marked as Completed
+        if (tx.transactionType === 'ADD_FUNDS' && newStatus === 'Completed') {
+          // Prevent re-crediting if already completed
+          if (userTxDoc.exists() && userTxDoc.data().status !== 'Completed') {
+            firestoreTransaction.update(targetUserRef, {
+              walletBalance: increment(tx.receivedAmount)
             });
-
-            if (tx.transactionType === 'ADD_FUNDS' && newStatus === 'Completed') {
-                if (currentTxDoc.exists() && currentTxDoc.data().status !== 'Completed') {
-                    firestoreTransaction.update(targetUserRef, {
-                        walletBalance: increment(tx.receivedAmount)
-                    });
-                }
-            }
-        });
-
-        toast({
-            title: "Update Successful",
-            description: `Transaction status changed to ${newStatus}.`,
-            className: "bg-accent text-accent-foreground",
-        });
-
-        setIsOpen(false);
+          }
+        }
+      });
+  
+      toast({
+        title: "Update Successful",
+        description: `Transaction status changed to ${newStatus}.`,
+        className: "bg-accent text-accent-foreground",
+      });
+  
+      setIsOpen(false);
     } catch (error) {
-        console.error("Transaction update failed: ", error);
-        toast({
-            title: "Update Failed",
-            description: "Could not update the transaction. Please try again.",
-            variant: "destructive",
-        });
+      console.error("Transaction update failed: ", error);
+      toast({
+        title: "Update Failed",
+        description: "Could not update the transaction. Please try again.",
+        variant: "destructive",
+      });
     }
-};
+  };
 
 
   const DetailRow = ({ label, value, copyValue, copyKey }: { label: string; value: ReactNode; copyValue?: string; copyKey?: string }) => (
@@ -326,5 +329,3 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
-
-    

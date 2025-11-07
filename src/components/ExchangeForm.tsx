@@ -30,7 +30,7 @@ import {
 import PaymentIcon from "@/components/PaymentIcons";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useCollection, useMemoFirebase, addDocumentNonBlocking, runTransactionNonBlocking, useDoc } from "@/firebase";
-import { collection, doc, increment } from "firebase/firestore";
+import { collection, doc, increment, addDoc } from "firebase/firestore";
 import type { ExchangeRate } from "@/lib/data";
 import Link from 'next/link';
 
@@ -146,7 +146,7 @@ export default function ExchangeForm() {
 
           let result = 0;
           if (sendMethod.currency === "USD" && receiveMethod.currency === "BDT") {
-            result = amountAfterFee * exchangeRates.USD_TO_BDT;
+            result = amountAfterFee * exchangeRates.USD_to_BDT;
           } else if (sendMethod.currency === "BDT" && receiveMethod.currency === "USD") {
             result = amountAfterFee / exchangeRates.BDT_TO_USD_RATE;
           } else { // USD to USD
@@ -358,8 +358,13 @@ export default function ExchangeForm() {
         transactionType: 'EXCHANGE' as const,
     };
     
-    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
-    addDocumentNonBlocking(transactionsColRef, transactionData);
+    // Create in user's subcollection
+    const userTransactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+    addDocumentNonBlocking(userTransactionsColRef, transactionData);
+
+    // Create in root collection for admin view
+    const rootTransactionsColRef = collection(firestore, 'transactions');
+    addDoc(rootTransactionsColRef, transactionData);
 
     setStep("status");
   };
