@@ -69,6 +69,8 @@ const getStatusVariant = (status: Transaction["status"]) => {
       return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200";
     case "Cancelled":
       return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
+    case "Refunded":
+      return "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200";
     default:
       return "outline";
   }
@@ -288,6 +290,7 @@ const AdminDashboard = () => {
                     <SelectItem value="Paid">Paid</SelectItem>
                     <SelectItem value="Completed">Completed</SelectItem>
                     <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    <SelectItem value="Refunded">Refunded</SelectItem>
                 </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
@@ -349,14 +352,10 @@ const AdminDashboard = () => {
                         {format(parseISO(tx.transactionDate), "PPp")}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{tx.paymentMethod}</span>
-                        </div>
+                        <span>{tx.paymentMethod}</span>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{tx.withdrawalMethod}</span>
-                        </div>
+                        <span>{tx.withdrawalMethod}</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="font-mono">

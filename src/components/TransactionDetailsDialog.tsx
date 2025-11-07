@@ -82,6 +82,8 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
          return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200";
       case "Cancelled":
           return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
+      case "Refunded":
+          return "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200";
       default:
         return "outline";
     }
@@ -219,7 +221,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
         
         {isAdmin ? (
           <DialogFooter className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {(["Pending", "Processing", "Paid", "Completed", "Cancelled"] as TransactionStatus[]).map(status => (
+            {(["Pending", "Processing", "Paid", "Completed", "Cancelled", "Refunded"] as TransactionStatus[]).map(status => (
               <Button key={status} size="sm" variant="outline" onClick={() => handleStatusUpdate(status)} disabled={tx.status === status}>
                 Mark {status}
               </Button>
@@ -244,5 +246,4 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     </Dialog>
   );
 }
-
     

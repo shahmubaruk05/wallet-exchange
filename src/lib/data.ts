@@ -22,7 +22,7 @@ export let exchangeRates = {
   BDT_TO_USD_RATE: 127.0,
 };
 
-export type TransactionStatus = "Processing" | "Paid" | "Completed" | "Pending" | "Cancelled";
+export type TransactionStatus = "Processing" | "Paid" | "Completed" | "Pending" | "Cancelled" | "Refunded";
 export type TransactionType = "EXCHANGE" | "CARD_TOP_UP" | "ADD_FUNDS" | "WALLET_TRANSFER";
 
 
