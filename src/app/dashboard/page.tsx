@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useAuth } from '@/firebase';
@@ -27,12 +28,6 @@ function DashboardPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Welcome, {user?.displayName || 'User'}</h1>
           <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
-        </div>
-        <div className="bg-card border rounded-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4">Dashboard</h2>
-          <p className="text-muted-foreground">
-            Welcome to your personal dashboard. Use the menu on the left to navigate.
-          </p>
         </div>
       </div>
     </AuthRedirect>
