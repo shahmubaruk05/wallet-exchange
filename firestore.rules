@@ -3,12 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helpers ---
+    // Helpers
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // 🔹 তোমার admin account
     function isAdmin() {
       return isSignedIn() &&
         (
@@ -17,94 +16,73 @@ service cloud.firestore {
         );
     }
 
-    // ------------- USERS -------------
+    // ---------- USERS ----------
     match /users/{userId} {
-      // সবাই (logged-in user) user ডক পড়তে পারবে
+      // লগইন করা যে কেউ সব user ডক পড়তে পারবে (recipient search না থাকলেও harmless)
       allow read: if isSignedIn();
 
-      // 🔸 নিজের প্রোফাইল update করতে পারবে
-      // 🔸 + admin চাইলে যেকোনো user ডক update করতে পারবে (walletBalance সহ)
+      // নিজে নিজের প্রোফাইল update করতে পারবে
+      // + admin সব user update করতে পারবে (walletBalance সহ)
       allow update: if isSignedIn() && (
-        request.auth.uid == userId ||   // নিজে
-        isAdmin()                       // admin
+        request.auth.uid == userId ||    // নিজে
+        isAdmin()                        // admin
       );
 
       // signup এর সময় create
       allow create: if isSignedIn();
     }
 
-    // ------------- TRANSACTIONS -------------
+    // ---------- ROOT TRANSACTIONS ----------
+    // এখানে EXCHANGE / ADD FUNDS transaction লগ থাকে
     match /transactions/{txId} {
 
-      // Create: userId বা senderId নিজের uid হতে হবে
-      allow create: if isSignedIn() && (
-        request.resource.data.senderId == request.auth.uid ||
-        request.resource.data.userId == request.auth.uid
-      );
+      // ইউজার নিজের transaction create করবে (Exchange রিকোয়েস্ট)
+      // ডকে অবশ্যই userId == auth.uid থাকতে হবে
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
 
-      // Admin সব transaction update করতে পারবে (status ইত্যাদি)
-      allow update: if isAdmin();
-
-      // Read:
+      // ইউজার নিজের transaction গুলো দেখতে পারবে, admin সব দেখতে পারবে
       allow read: if
         isAdmin() ||
         (
           isSignedIn() &&
-          (
-            resource.data.senderId == request.auth.uid ||
-            resource.data.recipientId == request.auth.uid ||
-            resource.data.userId == request.auth.uid
-          )
+          resource.data.userId == request.auth.uid
         );
-        
-      // Admin can update/delete for status changes
-      allow delete: if isAdmin();
-    }
-    
-    // Collection group rule for all 'transactions' for admin list view
-    match /{path=**}/transactions/{transactionId} {
-        allow list: if isAdmin();
+
+      // status, adminNote ইত্যাদি update: শুধু admin
+      allow update: if isAdmin();
     }
 
-
-    // ------------- USER SUBCOLLECTION: transactions -------------
+    // ---------- USER SUBCOLLECTION: transactions ----------
+    // কিছু কোড user-wise history রাখলে এর প্রয়োজন হবে
     match /users/{userId}/transactions/{txId} {
+      // user নিজের ডক create করে (mirror log)
       allow create: if isSignedIn() && request.auth.uid == userId;
 
-      // user নিজের history পড়তে পারবে, admin সবাইকে
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      // user নিজের history পড়তে পারবে, admin সব
+      allow read: if isAdmin() || (
+        isSignedIn() && request.auth.uid == userId
+      );
 
-      // admin status আপডেট করতে পারবে
+      // status sync / edit: শুধু admin
       allow update: if isAdmin();
-      
-      allow delete: if isAdmin();
     }
 
-    // 💰 Wallet balance data
-    match /userAccounts/{userId} {
-      // User can manage their own account
-      allow read, create, update: if request.auth != null && request.auth.uid == userId;
-      // Admin can manage everything
-      allow read, write: if isAdmin();
-    }
-
-    // 🌐 Exchange rates
+    // ---------- Exchange rates ----------
     match /exchange_rates/{rateId} {
-      allow read: if request.auth != null;   // All logged-in users can read
-      allow write: if isAdmin();             // Only admins can change
-    }
-
-    // 🌐 Exchange limits
-    match /exchange_limits/{docId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // 🪪 Card applications
+    // ---------- Exchange limits ----------
+    match /exchange_limits/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---------- Card applications ----------
     match /card_applications/{userId} {
-      // User can manage their own application
-      allow read, create, update: if request.auth != null && request.auth.uid == userId;
-      // Admin can read/write all applications
+      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
       allow read, write: if isAdmin();
     }
 
