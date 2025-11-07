@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, collection, where, query, getDocs, DocumentData, getDoc } from "firebase/firestore";
+import { doc, runTransaction, collection, where, query, getDocs, DocumentData, getDoc, DocumentSnapshot } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Loader2, ArrowRight } from "lucide-react";
 import Link from 'next/link';
@@ -64,9 +64,9 @@ export default function TransferForm() {
       return;
     }
     
-    const recipientIdentifier = values.recipientIdentifier.trim();
+    const normalizedInput = values.recipientIdentifier.trim();
 
-    if (recipientIdentifier === user.email || recipientIdentifier === user.uid) {
+    if (normalizedInput.toLowerCase() === user.email?.toLowerCase() || normalizedInput === user.uid) {
       toast({ title: "Invalid Recipient", description: "You cannot transfer funds to yourself.", variant: "destructive" });
       return;
     }
@@ -79,45 +79,58 @@ export default function TransferForm() {
     setIsSubmitting(true);
 
     try {
-      let recipientDoc: DocumentData | null = null;
-      let recipientId: string | null = null;
+      let recipientUser: { id: string; email: string; walletBalance: number } | null = null;
+      
+      const usersRef = collection(firestore, "users");
+      let emailQuerySnapshot: DocumentData | null = null;
+      let userDocSnapshot: DocumentSnapshot<DocumentData> | null = null;
 
-      // 1. Try to get user by ID directly
-      const docRef = doc(firestore, "users", recipientIdentifier);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        recipientDoc = docSnap.data();
-        recipientId = docSnap.id;
+      if (normalizedInput.includes("@")) {
+        const email = normalizedInput.toLowerCase();
+        const q = query(usersRef, where("email", "==", email));
+        emailQuerySnapshot = await getDocs(q);
+        if (!emailQuerySnapshot.empty) {
+          const docSnap = emailQuerySnapshot.docs[0];
+          const data = docSnap.data();
+          recipientUser = {
+            id: docSnap.id,
+            email: data.email,
+            walletBalance: data.walletBalance ?? 0,
+          };
+        }
       } else {
-        // 2. If not found by ID, try to get user by email
-        const q = query(collection(firestore, "users"), where("email", "==", recipientIdentifier));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          recipientDoc = doc.data();
-          recipientId = doc.id;
+        const userDocRef = doc(usersRef, normalizedInput);
+        userDocSnapshot = await getDoc(userDocRef);
+        if (userDocSnapshot.exists()) {
+          const data = userDocSnapshot.data();
+          recipientUser = {
+            id: userDocSnapshot.id,
+            email: data.email,
+            walletBalance: data.walletBalance ?? 0,
+          };
         }
       }
 
-      if (!recipientDoc || !recipientId) {
+      if (!recipientUser) {
+        console.log("Recipient lookup failed for:", normalizedInput, "snapshot size:", emailQuerySnapshot?.size, "doc exists:", userDocSnapshot?.exists?.());
         toast({ title: "Recipient Not Found", description: "No user found with that email or ID.", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
       
-      const recipientData = recipientDoc as User;
-
-      // Final self-transfer check with resolved ID/email
-      if (recipientId === user.uid) {
+      // Final self-transfer check with resolved ID
+      if (recipientUser.id === user.uid) {
         toast({ title: "Invalid Recipient", description: "You cannot transfer funds to yourself.", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
 
+      const recipientId = recipientUser.id;
+      const recipientEmail = recipientUser.email;
+
       await runTransaction(firestore, async (transaction) => {
         const senderRef = doc(firestore, "users", user.uid);
-        const recipientRef = doc(firestore, "users", recipientId!);
+        const recipientRef = doc(firestore, "users", recipientId);
         
         const senderDoc = await transaction.get(senderRef);
         if (!senderDoc.exists() || (senderDoc.data().walletBalance ?? 0) < values.amount) {
@@ -128,19 +141,15 @@ export default function TransferForm() {
         if (!recipientDocForTransaction.exists()) {
             throw new Error("Recipient document does not exist.");
         }
-        const recipientDataForTransaction = recipientDocForTransaction.data() as User;
-
 
         // Decrement sender's balance
         transaction.update(senderRef, { walletBalance: (senderDoc.data().walletBalance ?? 0) - values.amount });
 
         // Increment recipient's balance
-        const recipientCurrentBalance = (recipientDataForTransaction.walletBalance ?? 0);
+        const recipientCurrentBalance = (recipientDocForTransaction.data()?.walletBalance ?? 0);
         transaction.update(recipientRef, { walletBalance: recipientCurrentBalance + values.amount });
 
         const now = new Date().toISOString();
-        const recipientEmail = recipientDataForTransaction.email;
-
 
         // Create sender's transaction log
         const senderTxRef = doc(collection(firestore, `users/${user.uid}/transactions`));
@@ -163,7 +172,7 @@ export default function TransferForm() {
         });
         
         // Create recipient's transaction log
-        const recipientTxRef = doc(collection(firestore, `users/${recipientId!}/transactions`));
+        const recipientTxRef = doc(collection(firestore, `users/${recipientId}/transactions`));
         transaction.set(recipientTxRef, {
             userId: recipientId,
             transactionType: 'WALLET_TRANSFER',
@@ -183,7 +192,7 @@ export default function TransferForm() {
         });
       });
 
-      toast({ title: "Transfer Successful!", description: `${values.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} sent to ${recipientData.email}.`, className: "bg-accent text-accent-foreground" });
+      toast({ title: "Transfer Successful!", description: `${values.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} sent to ${recipientEmail}.`, className: "bg-accent text-accent-foreground" });
       setIsSuccess(true);
     } catch (error: any) {
         console.error("Transfer failed: ", error);
