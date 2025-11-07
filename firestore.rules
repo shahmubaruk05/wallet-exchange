@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,13 +14,11 @@ service cloud.firestore {
 
     // 🧑‍💻 User profiles
     match /users/{userId} {
-      // Any logged-in user can read any user doc
-      // (for recipient search by email)
-      allow read: if request.auth != null;
+      // Any logged-in user can read their own user doc
+      allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Any logged-in user can update any user doc
-      // (for fund transfers)
-      allow update: if request.auth != null;
+      // Any logged-in user can update their own user doc
+      allow update: if request.auth != null && request.auth.uid == userId;
 
       // Allow creating a new user doc (during signup)
       allow create: if request.auth != null;
@@ -39,26 +38,15 @@ service cloud.firestore {
         allow list: if isAdmin();
     }
 
-    // 🌍 Root-level transactions log (for transfers, admin view, etc.)
+    // 🌍 Root-level transactions log (for admin view)
     match /transactions/{txId} {
       // Any logged-in user can create a new transaction
       allow create: if request.auth != null;
-
-      // Reading a transaction is allowed if:
-      // - The user is an admin
-      // - The user is part of the transaction (sender or receiver)
-      allow read: if isAdmin() ||
-        (request.auth != null && (
-          resource.data.userId == request.auth.uid ||
-          (resource.data.transferDetails != null && resource.data.transferDetails.senderId == request.auth.uid) ||
-          (resource.data.transferDetails != null && resource.data.transferDetails.recipientId == request.auth.uid)
-        ));
-
-      // Update/delete only for admins
-      allow update, delete: if isAdmin();
+      // Admins can manage everything
+      allow read, update, delete: if isAdmin();
     }
 
-    // 💰 Wallet balance data (This seems deprecated in favor of `walletBalance` on the user doc)
+    // 💰 Wallet balance data
     match /userAccounts/{userId} {
       // User can manage their own account
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
