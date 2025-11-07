@@ -8,6 +8,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // 🔹 তোমার admin account
     function isAdmin() {
       return isSignedIn() &&
         (
@@ -92,5 +93,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // 🔥 FINAL CATCH-ALL: admin সব document read/write করতে পারবে
+    // এটা সবশেষে থাকবে, যেন বাকি সব specific rule আগেই apply হয়।
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
   }
 }
