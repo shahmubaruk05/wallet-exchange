@@ -158,6 +158,16 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     return tx.currency === 'USD' ? 'BDT' : 'USD';
   }
 
+  const getToAccountDisplay = () => {
+    if (tx.transactionType === 'CARD_TOP_UP') {
+      if (cardApplicationData?.cardNumber) {
+        return `Card (•••• ${cardApplicationData.cardNumber.slice(-4)})`;
+      }
+      return 'Card Top Up';
+    }
+    return tx.receivingAccountId;
+  };
+
   const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
     <div className="flex justify-between items-start border-b pb-2 mb-2">
       <dt className="text-muted-foreground text-sm">{label}</dt>
@@ -185,7 +195,7 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
                 <span>{tx.receivedAmount.toFixed(2)} {getReceivedCurrency()}</span>
             </div>} />
             <DetailRow label="From Account" value={tx.sendingAccountId} />
-            <DetailRow label="To Account" value={tx.receivingAccountId} />
+            <DetailRow label="To Account" value={getToAccountDisplay()} />
             <DetailRow label="Transaction ID" value={tx.transactionId} />
             <DetailRow label="Fee" value={`${(tx.transactionFee ?? 0).toFixed(2)} ${tx.currency}`} />
           </dl>
