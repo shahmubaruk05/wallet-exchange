@@ -88,38 +88,39 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
     }
   };
 
-  const handleStatusUpdate = async (newStatus: TransactionStatus) => {
+ const handleStatusUpdate = async (newStatus: TransactionStatus) => {
     if (!firestore || !user || tx.status === newStatus) return;
-  
-    const rootTxRef = doc(firestore, 'transactions', tx.id);
-    const userTxRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
-  
+
     try {
       await runTransaction(firestore, async (firestoreTransaction) => {
+        const rootTxRef = doc(firestore, 'transactions', tx.id);
+        const userTxRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
+
         // --- READS FIRST ---
+        // Read both documents. It's okay if one doesn't exist.
         const rootTxDoc = await firestoreTransaction.get(rootTxRef);
         const userTxDoc = await firestoreTransaction.get(userTxRef);
   
-        const originalStatus = rootTxDoc.exists() ? rootTxDoc.data().status : (userTxDoc.exists() ? userTxDoc.data().status : null);
+        const originalStatus = (rootTxDoc.exists() ? rootTxDoc.data().status : userTxDoc.data()?.status) || tx.status;
         const alreadyCompleted = originalStatus === 'Completed';
-  
+
         // --- WRITES SECOND ---
-        const updateData = { 
-          status: newStatus, 
-          adminNote, 
-          updatedAt: serverTimestamp() 
+        const updateData = {
+          status: newStatus,
+          adminNote,
+          updatedAt: serverTimestamp(),
         };
-  
+
         // 1. Update the root transaction document if it exists
         if (rootTxDoc.exists()) {
           firestoreTransaction.update(rootTxRef, updateData);
         }
-  
+
         // 2. Update the user's subcollection document if it exists
         if (userTxDoc.exists()) {
           firestoreTransaction.update(userTxRef, updateData);
         }
-  
+
         // 3. Handle balance updates if moving to "Completed" for the first time
         if (newStatus === 'Completed' && !alreadyCompleted) {
           const isDeposit = tx.transactionType === 'ADD_FUNDS' || (tx.transactionType === 'EXCHANGE' && tx.withdrawalMethod === 'Wallet Balance');
@@ -127,25 +128,25 @@ export function TransactionDetailsDialog({ transaction: tx, children }: Transact
             const targetUserRef = doc(firestore, 'users', tx.userId);
             // No need to read the user doc again if we just increment
             firestoreTransaction.update(targetUserRef, {
-              walletBalance: increment(tx.receivedAmount)
+              walletBalance: increment(tx.receivedAmount),
             });
           }
         }
       });
-  
+
       toast({
-        title: "Update Successful",
+        title: 'Update Successful',
         description: `Transaction status changed to ${newStatus}.`,
-        className: "bg-accent text-accent-foreground",
+        className: 'bg-accent text-accent-foreground',
       });
-  
+
       setIsOpen(false);
     } catch (error) {
-      console.error("Transaction update failed: ", error);
+      console.error('Transaction update failed: ', error);
       toast({
-        title: "Update Failed",
-        description: "Could not update the transaction. Please try again.",
-        variant: "destructive",
+        title: 'Update Failed',
+        description: 'Could not update the transaction. Please try again.',
+        variant: 'destructive',
       });
     }
   };
