@@ -174,15 +174,30 @@ const AdminDashboard = () => {
       if (!firestore) return;
       setIsLoading(true);
       try {
-        const transactionsQuery = query(
-          collection(firestore, "transactions"),
-          orderBy("transactionDate", "desc")
-        );
-        const transactionsSnapshot = await getDocs(transactionsQuery);
-        const transactions = transactionsSnapshot.docs.map(
+        // Fetch from root `transactions` collection
+        const rootTxQuery = query(collection(firestore, "transactions"));
+        const rootTxSnapshot = await getDocs(rootTxQuery);
+        const rootTransactions = rootTxSnapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
         );
-        setAllTransactions(transactions);
+
+        // Fetch from `transactions` collection group (users/{uid}/transactions)
+        const groupTxQuery = query(collectionGroup(firestore, "transactions"));
+        const groupTxSnapshot = await getDocs(groupTxQuery);
+        const groupTransactions = groupTxSnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() } as Transaction)
+        );
+        
+        // Combine and de-duplicate
+        const combined = [...rootTransactions, ...groupTransactions];
+        const uniqueTransactions = Array.from(new Map(combined.map(tx => [tx.id, tx])).values());
+
+        // Sort by date descending
+        uniqueTransactions.sort((a, b) => 
+            parseISO(b.transactionDate).getTime() - parseISO(a.transactionDate).getTime()
+        );
+
+        setAllTransactions(uniqueTransactions);
 
         const usersSnapshot = await getDocs(collection(firestore, "users"));
         const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
@@ -353,7 +368,7 @@ const AdminDashboard = () => {
                       <TableCell className="text-right">
                         <div className="font-mono">
                           {tx.amount.toFixed(2)} {tx.currency} &rarr;{" "}
-                          {tx.receivedAmount.toFixed(2)}{" "}
+                          {(tx.receivedAmount ?? 0).toFixed(2)}{" "}
                           {tx.transactionType === 'CARD_TOP_UP' ? 'USD' : tx.withdrawalMethod === 'Wallet Balance' ? 'USD' : 'BDT'}
                         </div>
                       </TableCell>
