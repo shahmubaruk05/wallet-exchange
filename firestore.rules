@@ -2,68 +2,74 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 Admin চিনার helper
+    // 👑 Admin helper function
     function isAdmin() {
       return request.auth != null &&
         (
-          request.auth.token.email == "shahmubaruk05@gmail.com" || // তোমার admin ইমেইল
-          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"      // admin UID
+          request.auth.token.email == "shahmubaruk05@gmail.com" || // Your admin email
+          request.auth.uid == "FD7Eh00D9ObTUmvfJ8ybAvbUn6h2"      // Your admin UID
         );
     }
 
     // 🧑‍💻 User profiles
     match /users/{userId} {
-      // 🔓 যে কেউ logged-in হলে সব user ডক পড়তে পারবে
-      // (ইমেইল দিয়ে recipient search করার জন্য)
+      // Any logged-in user can read any user doc
+      // (for recipient search by email)
       allow read: if request.auth != null;
 
-      // নিজের ডক বাদে অন্য user এর ডকও update করা যাবে
-      // (fund transfer এর জন্য)
+      // Any logged-in user can update any user doc
+      // (for fund transfers)
       allow update: if request.auth != null;
 
-      // নতুন user ডক create (signup এর সময়)
+      // Allow creating a new user doc (during signup)
       allow create: if request.auth != null;
     }
 
-    // 🔐 প্রতি user এর transactions (subcollection)
+    // 🔐 Transactions for each user (subcollection)
     match /users/{userId}/transactions/{txId} {
-      // ইউজার নিজের ট্রান্স্যাকশন লিস্ট দেখতে ও তৈরি করতে পারবে
+      // User can read and create their own transactions
       allow read, create: if request.auth != null && request.auth.uid == userId;
-      // status change / modify শুধু admin
+      // Admin can update/delete for status changes
       allow update, delete: if isAdmin();
     }
+    
+    // 🛡️ Collection group rule for all 'transactions'
+    match /{path=**}/transactions/{txId} {
+        // Admins can list all transactions across all users
+        allow list: if isAdmin();
+    }
 
-    // 🌍 Root-level transactions log (transfer history)
+    // 🌍 Root-level transactions log (for transfers, admin view, etc.)
     match /transactions/{txId} {
-      // যে কোনো logged-in user নতুন transaction create করতে পারবে
+      // Any logged-in user can create a new transaction
       allow create: if request.auth != null;
 
-      // transaction পড়া যাবে:
-      // - admin সব দেখতে পারবে
-      // - সাধারণ user শুধু নিজেরটা (যদি userId, fromUserId, senderId এর যেকোনোটাতে থাকে)
+      // Reading a transaction is allowed if:
+      // - The user is an admin
+      // - The user is part of the transaction (sender or receiver)
       allow read: if isAdmin() ||
         (request.auth != null && (
           resource.data.userId == request.auth.uid ||
-          resource.data.transferDetails.senderId == request.auth.uid ||
-          resource.data.transferDetails.recipientId == request.auth.uid
+          (resource.data.transferDetails != null && resource.data.transferDetails.senderId == request.auth.uid) ||
+          (resource.data.transferDetails != null && resource.data.transferDetails.recipientId == request.auth.uid)
         ));
 
-      // update/delete: শুধু admin
+      // Update/delete only for admins
       allow update, delete: if isAdmin();
     }
 
-    // 💰 Wallet balance ডাটা
+    // 💰 Wallet balance data (This seems deprecated in favor of `walletBalance` on the user doc)
     match /userAccounts/{userId} {
-      // ইউজার নিজের একাউন্ট দেখতে ও update করতে পারবে
+      // User can manage their own account
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
-      // admin সব manage করতে পারবে
+      // Admin can manage everything
       allow read, write: if isAdmin();
     }
 
     // 🌐 Exchange rates
     match /exchange_rates/{rateId} {
-      allow read: if request.auth != null;   // সব logged-in user দেখবে
-      allow write: if isAdmin();             // শুধু admin change করবে
+      allow read: if request.auth != null;   // All logged-in users can read
+      allow write: if isAdmin();             // Only admins can change
     }
 
     // 🌐 Exchange limits
@@ -74,7 +80,9 @@ service cloud.firestore {
 
     // 🪪 Card applications
     match /card_applications/{userId} {
+      // User can manage their own application
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
+      // Admin can read/write all applications
       allow read, write: if isAdmin();
     }
 
