@@ -11,7 +11,9 @@ function DashboardPage() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await auth.signOut();
+    if (auth) {
+      await auth.signOut();
+    }
     router.push('/login');
   };
 
@@ -23,7 +25,7 @@ function DashboardPage() {
     <AuthRedirect to="/login" condition={user => !user}>
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Welcome, {user?.email || 'User'}</h1>
+          <h1 className="text-3xl font-bold">Welcome, {user?.displayName || 'User'}</h1>
           <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
         </div>
         <div className="bg-card border rounded-lg p-6">
