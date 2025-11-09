@@ -63,7 +63,7 @@ export default function SignupPage() {
         if (error.code === 'auth/email-already-in-use') {
             form.setError('email', {
                 type: 'manual',
-                message: 'This email is already in use. Please use a different email or log in.',
+                message: 'This email is already in use. Please use a different email or sign in.',
             });
         } else {
              toast({
@@ -183,7 +183,7 @@ export default function SignupPage() {
             <p className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link href="/login" className="font-semibold text-primary hover:underline">
-                Login
+                Sign in
                 </Link>
             </p>
             </CardContent>
@@ -192,3 +192,5 @@ export default function SignupPage() {
     </AuthRedirect>
   );
 }
+
+    

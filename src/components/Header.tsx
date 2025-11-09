@@ -42,7 +42,7 @@ const Header = () => {
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/login">
                     <LogIn className="h-5 w-5" />
-                    <span className="hidden sm:inline-block sm:ml-2">Login</span>
+                    <span className="hidden sm:inline-block sm:ml-2">Sign In</span>
                   </Link>
                 </Button>
                 <Button size="sm" asChild>
@@ -61,3 +61,5 @@ const Header = () => {
 };
 
 export default Header;
+
+    

@@ -83,7 +83,7 @@ const loginFormSchema = z.object({
     .min(6, { message: "Password must be at least 6 characters." }),
 });
 
-const AdminLoginPage = () => {
+const AdminSignInPage = () => {
   const auth = useAuth();
   const form = useForm<z.infer<typeof loginFormSchema>>({
     resolver: zodResolver(loginFormSchema),
@@ -103,9 +103,9 @@ const AdminLoginPage = () => {
     <div className="flex items-center justify-center min-h-[60vh]">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Admin Login</CardTitle>
+          <CardTitle>Admin Sign In</CardTitle>
           <CardDescription>
-            Please login to access the admin panel.
+            Please sign in to access the admin panel.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,7 +142,7 @@ const AdminLoginPage = () => {
                 )}
               />
               <Button type="submit" className="w-full">
-                Login as Admin
+                Sign In as Admin
               </Button>
             </form>
           </Form>
@@ -392,7 +392,7 @@ const NotAuthorized = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => auth?.signOut()}>Logout</Button>
+          <Button onClick={() => auth?.signOut()}>Sign Out</Button>
         </CardContent>
       </Card>
     </div>
@@ -440,7 +440,7 @@ const AdminPage = () => {
 
   return (
     <AuthRedirect to="/login" condition={(user) => !user}>
-      {user ? <AdminDashboardPage /> : <AdminLoginPage />}
+      {user ? <AdminDashboardPage /> : <AdminSignInPage />}
     </AuthRedirect>
   );
 };
