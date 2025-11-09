@@ -146,20 +146,21 @@ export default function Home() {
         </Carousel>
       </section>
 
-      {/* Supported Wallets Strip */}
-      <section className="py-8 bg-slate-50 dark:bg-slate-800/50 border-y dark:border-slate-800">
+      {/* Supported Wallets Section */}
+      <section className="py-12 bg-slate-50 dark:bg-slate-800/50">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-              We support:
-            </span>
+          <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50">We Support All Major Digital Wallets</h3>
+              <p className="text-slate-600 dark:text-slate-400">Easily move money between your favorite platforms.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
             {wallets.map((wallet) => (
               <div
                 key={wallet.id}
-                className="flex items-center gap-2 text-slate-500 dark:text-slate-400"
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow"
               >
-                <PaymentIcon id={wallet.id} className="w-5 h-5" />
-                <span className="text-sm font-medium">{wallet.name}</span>
+                <PaymentIcon id={wallet.id} className="w-12 h-12" />
+                <span className="text-md font-medium text-foreground">{wallet.name}</span>
               </div>
             ))}
           </div>
