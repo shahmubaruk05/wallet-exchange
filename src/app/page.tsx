@@ -106,7 +106,7 @@ export default function Home() {
                         </div>
                         <div className="hidden lg:flex items-center justify-center">
                           <Image 
-                            src="https://placehold.co/600x400/e0f2fe/0c4a6e/png?text=PayPal%20%E2%86%92%20bKash%0A%24100%20%3D%2012,200%20BDT&font=sans"
+                            src="https://placehold.co/600x400/EBF8FF/1E3A8A/png?text=PayPal%20%E2%86%92%20bKash%0A%24100%20%3D%2012,200%20BDT&font=sans"
                             alt="Currency Exchange Banner"
                             width={600}
                             height={400}
@@ -141,14 +141,7 @@ export default function Home() {
                           </div>
                         </div>
                          <div className="hidden lg:flex items-center justify-center">
-                          <Image 
-                            src="https://placehold.co/600x400/EBF8FF/1E3A8A/png?text=Wallet%20Exchange%0A%0A1234%204567%207890%201234%0A%0AYOUR%20NAME%20%20%20%2000/00%20%20%20%20123&font=monospace"
-                            alt="Virtual Card Banner"
-                            width={600}
-                            height={400}
-                            className="rounded-xl shadow-2xl"
-                            data-ai-hint="virtual card payment"
-                          />
+                          <VirtualCard application={demoCardApplication} />
                         </div>
                       </div>
                     </div>
