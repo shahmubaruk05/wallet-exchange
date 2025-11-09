@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import PaymentIcon from '@/components/PaymentIcons';
 import { format, parseISO } from 'date-fns';
 import { TransactionDetailsDialog } from '@/components/TransactionDetailsDialog';
+import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
 
 function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -112,6 +113,9 @@ function DashboardPage() {
                 </Button>
             </CardFooter>
         </Card>
+
+        {/* Mobile quick navigation buttons */}
+        <MobileDashboardNav />
 
         <Card>
             <CardHeader>
