@@ -2,6 +2,7 @@
 'use client';
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -13,13 +14,14 @@ import {
   SidebarInset,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet, Share2 } from "lucide-react";
+import { ArrowLeftRight, History, User, LogOut, CreditCard, Landmark, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import AuthRedirect from "@/components/auth/AuthRedirect";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { doc } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
   children,
@@ -30,6 +32,7 @@ export default function DashboardLayout({
   const { user } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
+  const pathname = usePathname();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -52,12 +55,19 @@ export default function DashboardLayout({
 
   const walletBalance = (userData as any)?.walletBalance ?? 0;
 
+  const navItems = [
+    { href: "/dashboard/add-funds", icon: Landmark, label: "Add Funds" },
+    { href: "/dashboard/exchange", icon: ArrowLeftRight, label: "Exchange" },
+    { href: "/dashboard/transactions", icon: History, label: "History" },
+    { href: "/dashboard/cards", icon: CreditCard, label: "My Card" },
+  ];
+
   return (
     <SidebarProvider>
       <AuthRedirect to="/login" condition={user => !user}>
         <Sidebar>
             <SidebarHeader>
-              <div className="flex items-center gap-2 p-2">
+              <div className="flex items-center gap-2 p-4">
                   <User className="h-6 w-6 text-primary" />
                   <span className="font-bold text-lg">Dashboard</span>
               </div>
@@ -122,8 +132,30 @@ export default function DashboardLayout({
             </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-            <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+            <div className="p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">{children}</div>
         </SidebarInset>
+
+         {/* Mobile Bottom Navigation */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t z-10 flex items-center justify-around">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 w-full h-full text-xs transition-colors",
+                  isActive
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-primary"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
        </AuthRedirect>
     </SidebarProvider>
   );
