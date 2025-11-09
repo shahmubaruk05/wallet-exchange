@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +17,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+import {
   ArrowRight,
   CreditCard,
   Repeat,
@@ -24,11 +35,18 @@ import {
   Zap,
   Users,
   MessageSquare,
+  DollarSign,
+  Landmark,
 } from "lucide-react";
 import Link from "next/link";
 import PaymentIcon from "@/components/PaymentIcons";
+import Image from "next/image";
 
 export default function Home() {
+  const plugin = useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: true })
+  );
+
   const wallets = [
     { id: "paypal", name: "PayPal" },
     { id: "payoneer", name: "Payoneer" },
@@ -39,69 +57,93 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section className="w-full py-20 md:py-28 lg:py-32 bg-gradient-to-b from-blue-50 via-white to-white dark:from-slate-900/50 dark:via-background">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
-            <div className="flex flex-col justify-center space-y-6">
-              <div className="space-y-4">
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900 dark:text-slate-50">
-                  Your All-in-One Digital Wallet Exchange
-                </h1>
-                <p className="max-w-[600px] text-slate-600 md:text-xl dark:text-slate-400">
-                  Exchange funds between PayPal, Payoneer, Wise, bKash, Nagad,
-                  and more. Get a secure virtual card for international
-                  payments.
-                </p>
-              </div>
-              <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                <Button asChild size="lg" className="px-8 py-6 text-base">
-                  <Link href="/dashboard/exchange">
-                    Start Exchanging
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="secondary"
-                  size="lg"
-                  className="px-8 py-6 text-base"
-                >
-                  <Link href="/dashboard/cards">Get a Virtual Card</Link>
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="relative w-full max-w-md">
-                <div className="absolute -inset-2 bg-gradient-to-r from-cyan-400 to-sky-500 rounded-2xl blur-lg opacity-50"></div>
-                <Card className="relative rounded-2xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-xl">Example Exchange</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center text-lg font-semibold">
-                      <div className="flex items-center gap-2">
-                        <PaymentIcon id="paypal" className="w-7 h-7" />
-                        <span>PayPal</span>
-                      </div>
-                      <ArrowRight className="text-slate-400" />
-                      <div className="flex items-center gap-2">
-                        <PaymentIcon id="bkash" className="w-7 h-7" />
-                        <span>bKash</span>
+      <section className="w-full bg-gradient-to-b from-blue-50 via-white to-white dark:from-slate-900/50 dark:via-background">
+        <Carousel 
+          plugins={[plugin.current]}
+          className="w-full"
+          onMouseEnter={plugin.current.stop}
+          onMouseLeave={plugin.current.reset}
+          opts={{
+            loop: true,
+          }}
+        >
+          <CarouselContent>
+            <CarouselItem>
+                <div className="w-full py-20 md:py-28 lg:py-32">
+                    <div className="container px-4 md:px-6">
+                      <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
+                        <div className="flex flex-col justify-center space-y-6">
+                          <div className="space-y-4">
+                            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900 dark:text-slate-50">
+                              Best Price Dollar ⇄ Taka Exchange
+                            </h1>
+                            <p className="max-w-[600px] text-slate-600 md:text-xl dark:text-slate-400">
+                              Seamlessly exchange funds between PayPal, Payoneer, Wise, bKash, Nagad, and more. Get the most competitive rates, fast.
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-4 min-[400px]:flex-row">
+                            <Button asChild size="lg" className="px-8 py-6 text-base">
+                              <Link href="/dashboard/exchange">
+                                Exchange Now
+                                <ArrowRight className="ml-2 h-5 w-5" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="hidden lg:flex items-center justify-center">
+                          <Image 
+                            src="https://picsum.photos/seed/exchange/600/400"
+                            alt="Currency Exchange Banner"
+                            width={600}
+                            height={400}
+                            className="rounded-xl shadow-2xl"
+                            data-ai-hint="currency exchange"
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-6 text-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-                      <p className="text-2xl font-mono text-slate-800 dark:text-slate-200">
-                        $100.00{" "}
-                        <span className="text-slate-500 mx-2">&rarr;</span>{" "}
-                        12,200.00 BDT
-                      </p>
+                </div>
+            </CarouselItem>
+             <CarouselItem>
+                <div className="w-full py-20 md:py-28 lg:py-32">
+                    <div className="container px-4 md:px-6">
+                      <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
+                        <div className="flex flex-col justify-center space-y-6">
+                          <div className="space-y-4">
+                            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900 dark:text-slate-50">
+                              International Virtual Card for Global Payments
+                            </h1>
+                            <p className="max-w-[600px] text-slate-600 md:text-xl dark:text-slate-400">
+                              Get a secure virtual card for all your international payments. Top-up easily and spend without limits.
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-4 min-[400px]:flex-row">
+                            <Button asChild size="lg" className="px-8 py-6 text-base">
+                              <Link href="/dashboard/cards">
+                                Get Your Card
+                                <CreditCard className="ml-2 h-5 w-5" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
+                         <div className="hidden lg:flex items-center justify-center">
+                          <Image 
+                            src="https://picsum.photos/seed/virtualcard/600/400"
+                            alt="Virtual Card Banner"
+                            width={600}
+                            height={400}
+                            className="rounded-xl shadow-2xl"
+                            data-ai-hint="virtual card payment"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </div>
+                </div>
+            </CarouselItem>
+          </CarouselContent>
+           <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+           <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+        </Carousel>
       </section>
 
       {/* Supported Wallets Strip */}
@@ -150,7 +192,7 @@ export default function Home() {
                     <Repeat className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <CardTitle className="text-2xl">
-                    Currency & Wallet Exchange
+                    Currency &amp; Wallet Exchange
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -208,7 +250,7 @@ export default function Home() {
             {[
               {
                 icon: Wallet,
-                title: "Choose wallets & amount",
+                title: "Choose wallets &amp; amount",
                 text: "Select how you want to pay and where you want to receive funds.",
               },
               {
@@ -247,7 +289,7 @@ export default function Home() {
               Why Wallet Exchange
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-slate-50">
-              Built for Freelancers & Online Businesses
+              Built for Freelancers &amp; Online Businesses
             </h2>
           </div>
           <div className="mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-12 max-w-6xl">
@@ -259,7 +301,7 @@ export default function Home() {
               },
               {
                 icon: ShieldCheck,
-                title: "Secure & verified",
+                title: "Secure &amp; verified",
                 text: "Manual review and secure wallet details to keep your funds safe.",
               },
               {
@@ -291,7 +333,7 @@ export default function Home() {
       <section className="w-full py-16 md:py-24 bg-slate-50 dark:bg-slate-800/50">
         <div className="container px-4 md:px-6">
           <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl text-slate-900 dark:text-slate-50">
-            Trusted by remote workers & agencies
+            Trusted by remote workers &amp; agencies
           </h2>
           <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-12">
             {[
@@ -372,3 +414,5 @@ export default function Home() {
     </>
   );
 }
+
+    
