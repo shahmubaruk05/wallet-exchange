@@ -128,7 +128,7 @@ export default function Home() {
                         </div>
                          <div className="hidden lg:flex items-center justify-center">
                           <Image 
-                            src="https://placehold.co/600x400/1E3A8A/FFFFFF/png?text=Wallet+Exchange%0A%0A5123+4567+8901+2345%0A%0AVALID+THRU%0A12/28%0A%0AJOHN+DOE&font=monospace"
+                            src="https://placehold.co/600x400/EBF8FF/1E3A8A/png?text=Wallet+Exchange%0A%0A1234+4567+7890+1234%0A%0AYOUR+NAME++00/00++CVC+123&font=monospace"
                             alt="Virtual Card Banner"
                             width={600}
                             height={400}
