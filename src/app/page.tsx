@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Accordion,
@@ -35,12 +32,13 @@ import {
   Zap,
   Users,
   MessageSquare,
-  DollarSign,
-  Landmark,
 } from "lucide-react";
 import Link from "next/link";
 import PaymentIcon from "@/components/PaymentIcons";
 import Image from "next/image";
+import HomepageExchangeForm from '@/components/HomepageExchangeForm';
+import VirtualCard from '@/components/VirtualCard';
+import { CardApplication } from '@/lib/data';
 
 export default function Home() {
   const plugin = useRef(
@@ -54,6 +52,22 @@ export default function Home() {
     { id: "bkash", name: "bKash" },
     { id: "nagad", name: "Nagad" },
   ];
+
+  const demoCardApplication: CardApplication = {
+    id: 'demo',
+    userId: 'demo',
+    name: 'YOUR NAME',
+    email: 'your@email.com',
+    phone: '',
+    billingAddress: '',
+    status: 'Approved',
+    appliedAt: new Date().toISOString(),
+    cardNumber: '1234567890123456',
+    expiryDate: '12/28',
+    cvc: '123',
+    brand: 'Mastercard'
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -92,7 +106,7 @@ export default function Home() {
                         </div>
                         <div className="hidden lg:flex items-center justify-center">
                           <Image 
-                            src="https://placehold.co/600x400/e0f2fe/0c4a6e/png?text=PayPal+%E2%86%92+bKash%0A%24100+%3D+12,200+BDT&font=sans"
+                            src="https://placehold.co/600x400/e0f2fe/0c4a6e/png?text=PayPal%20%E2%86%92%20bKash%0A%24100%20%3D%2012,200%20BDT&font=sans"
                             alt="Currency Exchange Banner"
                             width={600}
                             height={400}
@@ -128,7 +142,7 @@ export default function Home() {
                         </div>
                          <div className="hidden lg:flex items-center justify-center">
                           <Image 
-                            src="https://placehold.co/600x400/EBF8FF/1E3A8A/png?text=Wallet%20Exchange%0A%0A%0A1234%204567%207890%201234%0A%0A%0AYOUR%20NAME%20%20%20%2000/00%20%20%20%20123&font=monospace"
+                            src="https://placehold.co/600x400/EBF8FF/1E3A8A/png?text=Wallet%20Exchange%0A%0A1234%204567%207890%201234%0A%0AYOUR%20NAME%20%20%20%2000/00%20%20%20%20123&font=monospace"
                             alt="Virtual Card Banner"
                             width={600}
                             height={400}
@@ -185,51 +199,42 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="mx-auto grid max-w-5xl items-stretch gap-8 sm:grid-cols-2 mt-12">
-            <Card className="hover:shadow-xl hover:-translate-y-1 transition-all rounded-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+          <div className="mx-auto grid max-w-6xl items-stretch gap-8 lg:grid-cols-2 mt-12">
+            <Card className="hover:shadow-xl hover:-translate-y-1 transition-all rounded-2xl flex flex-col">
+               <CardContent className="p-6 flex-grow flex flex-col">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
                     <Repeat className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <CardTitle className="text-2xl">
-                    Currency &amp; Wallet Exchange
-                  </CardTitle>
+                  <div>
+                    <h3 className="text-xl font-bold">Currency & Wallet Exchange</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Calculate rates and start your exchange.</p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-slate-600 dark:text-slate-400">
-                  Effortlessly transfer funds between bKash, Nagad, PayPal,
-                  Payoneer, and Wise. Our platform ensures swift and secure
-                  transactions at competitive rates.
-                </p>
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/exchange">
-                    Exchange Now <ArrowRight className="ml-2" />
-                  </Link>
-                </Button>
+                 <div className="flex-grow">
+                  <HomepageExchangeForm />
+                </div>
               </CardContent>
             </Card>
-            <Card className="hover:shadow-xl hover:-translate-y-1 transition-all rounded-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+             <Card className="hover:shadow-xl hover:-translate-y-1 transition-all rounded-2xl flex flex-col">
+              <CardContent className="p-6 flex-grow flex flex-col">
+                 <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center shrink-0">
                     <CreditCard className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <CardTitle className="text-2xl">Virtual USD Cards</CardTitle>
+                  <div>
+                    <h3 className="text-xl font-bold">Virtual USD Cards</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Get a virtual card for global payments.</p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-slate-600 dark:text-slate-400">
-                  Get your own virtual card for secure online and international
-                  payments. Top up easily using your local currency and start
-                  spending globally.
-                </p>
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/cards">
-                    Get Your Card <ArrowRight className="ml-2" />
-                  </Link>
-                </Button>
+                <div className="flex-grow flex flex-col justify-center items-center">
+                  <VirtualCard application={demoCardApplication} />
+                  <Button asChild variant="outline" className="mt-6">
+                    <Link href="/dashboard/cards">
+                      Get Your Card <ArrowRight className="ml-2" />
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -251,7 +256,7 @@ export default function Home() {
             {[
               {
                 icon: Wallet,
-                title: "Choose wallets &amp; amount",
+                title: "Choose wallets & amount",
                 text: "Select how you want to pay and where you want to receive funds.",
               },
               {
@@ -290,7 +295,7 @@ export default function Home() {
               Why Wallet Exchange
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-slate-50">
-              Built for Freelancers &amp; Online Businesses
+              Built for Freelancers & Online Businesses
             </h2>
           </div>
           <div className="mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-12 max-w-6xl">
@@ -302,7 +307,7 @@ export default function Home() {
               },
               {
                 icon: ShieldCheck,
-                title: "Secure &amp; verified",
+                title: "Secure & verified",
                 text: "Manual review and secure wallet details to keep your funds safe.",
               },
               {
@@ -334,7 +339,7 @@ export default function Home() {
       <section className="w-full py-16 md:py-24 bg-slate-50 dark:bg-slate-800/50">
         <div className="container px-4 md:px-6">
           <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl text-slate-900 dark:text-slate-50">
-            Trusted by remote workers &amp; agencies
+            Trusted by remote workers & agencies
           </h2>
           <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-12">
             {[
@@ -376,7 +381,7 @@ export default function Home() {
       </section>
 
       {/* FAQ Section */}
-      <section className="w-full py-16 md:py-24">
+      <section id="faq" className="w-full py-16 md:py-24">
         <div className="container max-w-4xl px-4 md:px-6">
           <h2 className="text-3xl font-bold tracking-tighter text-center mb-8 sm:text-4xl text-slate-900 dark:text-slate-50">
             Frequently Asked Questions
