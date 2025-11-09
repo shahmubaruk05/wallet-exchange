@@ -58,8 +58,8 @@ service cloud.firestore {
 
     // ---------- Exchange rates ----------
     match /exchange_rates/{rateId} {
-      // সবাই (logged-in user) rate দেখতে পারবে
-      allow read: if isSignedIn();
+      // সবাই rate দেখতে পারবে
+      allow read;
       // কিন্তু লিখতে (add/update/delete) পারবে শুধু admin
       allow write: if isAdmin();
     }
@@ -89,5 +89,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
