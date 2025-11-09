@@ -92,7 +92,7 @@ export default function Home() {
                         </div>
                         <div className="hidden lg:flex items-center justify-center">
                           <Image 
-                            src="https://picsum.photos/seed/money-transfer/600/400"
+                            src="https://placehold.co/600x400/e0f2fe/0c4a6e/png?text=PayPal+%E2%86%92+bKash%0A%24100+%3D+12,200+BDT&font=sans"
                             alt="Currency Exchange Banner"
                             width={600}
                             height={400}
