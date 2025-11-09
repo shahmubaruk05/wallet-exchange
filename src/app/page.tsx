@@ -92,7 +92,7 @@ export default function Home() {
                         </div>
                         <div className="hidden lg:flex items-center justify-center">
                           <Image 
-                            src="https://picsum.photos/seed/exchange/600/400"
+                            src="https://picsum.photos/seed/money-transfer/600/400"
                             alt="Currency Exchange Banner"
                             width={600}
                             height={400}
@@ -414,5 +414,3 @@ export default function Home() {
     </>
   );
 }
-
-    
