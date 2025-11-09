@@ -21,11 +21,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/firebase";
-import { initiateEmailSignIn, initiateGoogleSignIn } from "@/firebase/non-blocking-login";
+import { useAuth, useUser, initiateEmailSignIn, initiateGoogleSignIn } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import AuthRedirect from "@/components/auth/AuthRedirect";
-import { useUser } from "@/firebase";
 import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
@@ -146,5 +144,3 @@ export default function LoginPage() {
     </AuthRedirect>
   );
 }
-
-    
