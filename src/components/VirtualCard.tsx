@@ -11,7 +11,7 @@ const formatCardNumber = (number?: string) => {
   return number.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
 };
 
-const VirtualCard: React.FC<VirtualCardProps> = ({ application }) => {
+const VirtualCard: React.FC<{ application: CardApplication }> = ({ application }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   const cardHolderName = application.name || 'CARDHOLDER NAME';
@@ -21,24 +21,29 @@ const VirtualCard: React.FC<VirtualCardProps> = ({ application }) => {
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      <div className="relative w-full h-56">
-          <div className="w-full h-full rounded-xl bg-gradient-to-br from-primary via-blue-400 to-teal-300 shadow-lg p-6 flex flex-col justify-between text-white">
+      <div className="relative w-full h-56 group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-blue-400 to-teal-300 rounded-xl shadow-lg transform transition-transform duration-500 group-hover:scale-105"></div>
+        <div className="relative w-full h-full rounded-xl p-6 flex flex-col justify-between text-white">
             <div className="flex justify-between items-start">
               <span className="font-bold text-lg">Wallet Exchange</span>
-              <div className="w-12 h-8 bg-yellow-400 rounded-md flex items-center justify-center">
-                 <div className="w-6 h-6 rounded-full bg-red-500 opacity-70 mix-blend-multiply"></div>
-                 <div className="w-6 h-6 rounded-full bg-yellow-500 opacity-70 mix-blend-multiply -ml-2"></div>
-              </div>
+               <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-red-500/80"></div>
+                    <div className="w-8 h-8 rounded-full bg-yellow-400/80 -ml-4"></div>
+               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-4">
                 <div className="font-mono text-xl tracking-widest text-center">
                     {showDetails ? formatCardNumber(cardNumber) : '•••• •••• •••• ••••'}
                 </div>
-                 <div className="flex justify-between text-xs font-mono uppercase">
-                    <span>{showDetails ? cardHolderName : 'CARDHOLDER NAME'}</span>
-                    <div className="flex gap-4">
+                 <div className="flex justify-between text-xs font-mono uppercase items-end">
+                    <span className="truncate max-w-[150px]">{showDetails ? cardHolderName : 'CARDHOLDER NAME'}</span>
+                    <div className="flex flex-col items-end">
+                        <span className="text-gray-200 text-[10px]">VALID THRU</span>
                         <span>{showDetails ? expiryDate : 'MM/YY'}</span>
-                        <span>CVC: {showDetails ? cvc : '•••'}</span>
+                    </div>
+                     <div className="flex flex-col items-end">
+                         <span className="text-gray-200 text-[10px]">CVC</span>
+                         <span>{showDetails ? cvc : '•••'}</span>
                     </div>
                 </div>
             </div>
